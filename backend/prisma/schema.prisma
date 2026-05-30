@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  SELLER
+  USER
+}
+
+enum Category {
+  FRUITS_VEGETABLES
+  HONEY
+  DAIRY
+  HERBS
+  NATURAL_BEAUTY
+}
+
+enum CertificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  avatarUrl String?
+  role      Role     @default(USER)
+  city      String?
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stores    Store[]
+  favorites Favorite[]
+  cartItems CartItem[]
+  orders    Order[]
+  addresses Address[]
+  reviews   Review[]
+
+  @@index([role])
+  @@map("users")
+}
+
+model Store {
+  id               String   @id @default(uuid())
+  name             String
+  logoUrl          String?
+  galleryUrls      String[] @default([])
+  description      String
+  addressText      String?
+  city             String?
+  latitude         Float?
+  longitude        Float?
+  category         Category
+  instagramHandle  String?
+  whatsappNumber   String
+  isVerified       Boolean  @default(false)
+  certificationUrl String?
+  certificationStatus CertificationStatus @default(PENDING)
+  certificationNotes String?
+  trustedBadge     Boolean @default(false)
+  ownerId          String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id])
+  products Product[]
+  reviews  Review[]
+  orderItems OrderItem[]
+
+  @@index([ownerId])
+  @@index([isVerified])
+  @@index([category])
+  @@index([city])
+  @@index([isVerified, category])
+  @@map("stores")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  price       Decimal  @db.Decimal(10, 2)
+  imageUrls   String[]
+  category    Category
+  originAddressText String?
+  originCity  String?
+  originLatitude Float?
+  originLongitude Float?
+  storeId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  favorites Favorite[]
+  cartItems CartItem[]
+  orderItems OrderItem[]
+  reviews   Review[]
+
+  @@index([storeId])
+  @@index([category])
+  @@index([originCity])
+  @@index([createdAt])
+  @@index([storeId, createdAt])
+  @@map("products")
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@map("favorites")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@map("cart_items")
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  label       String
+  recipient   String
+  phone       String
+  city        String
+  addressText String?
+  line1       String
+  line2       String?
+  latitude    Float?
+  longitude   Float?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+model Order {
+  id                 String        @id @default(uuid())
+  userId             String
+  addressId          String?
+  subtotal           Decimal       @db.Decimal(10, 2)
+  deliveryFee        Decimal       @db.Decimal(10, 2)
+  total              Decimal       @db.Decimal(10, 2)
+  paymentMethod      String
+  paymentStatus      PaymentStatus @default(PENDING)
+  status             OrderStatus   @default(PENDING)
+  deliveryEtaMinutes Int
+  deliveryAddress    Json
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  address Address?    @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  items   OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String  @id @default(uuid())
+  orderId     String
+  productId   String?
+  storeId     String?
+  productName String
+  storeName   String
+  unitPrice   Decimal @db.Decimal(10, 2)
+  quantity    Int
+  lineTotal   Decimal @db.Decimal(10, 2)
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  store   Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([storeId])
+  @@map("order_items")
+}
+
+model Review {
+  id        String       @id @default(uuid())
+  userId    String
+  productId String?
+  storeId   String?
+  rating    Int
+  comment   String?
+  status    ReviewStatus @default(APPROVED)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store   Store?   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([storeId])
+  @@index([userId])
+  @@map("reviews")
+}

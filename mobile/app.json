@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "وطني",
+    "slug": "watani",
+    "version": "1.0.0",
+    "description": "سوقك المحلي - منتجات سعودية",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.watani.localmarketplace",
+      "supportsRTL": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Watani uses your location to select delivery and farm locations on the map."
+      }
+    },
+    "android": {
+      "supportsRTL": true,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "extra": {
+      "supportsRTL": true
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-localization",
+      "expo-splash-screen",
+      "expo-status-bar"
+    ]
+  }
+}

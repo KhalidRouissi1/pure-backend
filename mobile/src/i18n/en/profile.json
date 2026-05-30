@@ -1,0 +1,51 @@
+{
+  "title": "Profile",
+  "fields": {
+    "name": "Display Name",
+    "email": "Email",
+    "city": "City",
+    "phone": "Phone",
+    "role": "Role",
+    "userId": "User ID"
+  },
+  "editModal": {
+    "title": "Edit {{field}}",
+    "save": "Save",
+    "cancel": "Cancel",
+    "placeholder": {
+      "name": "Enter your display name",
+      "city": "Enter your city",
+      "phone": "05XXXXXXXX"
+    }
+  },
+  "logout": {
+    "title": "Logout",
+    "message": "Are you sure you want to logout?",
+    "confirm": "Logout",
+    "cancel": "Cancel"
+  },
+  "avatar": {
+    "change": "Change Photo",
+    "remove": "Remove Photo"
+  },
+  "roleBadge": {
+    "ADMIN": "Admin",
+    "SELLER": "Seller",
+    "USER": "Buyer"
+  },
+  "errors": {
+    "loadFailed": "Failed to load profile",
+    "saveFailed": "Failed to save changes",
+    "uploadFailed": "Failed to upload image"
+  },
+  "store": {
+    "title": "My Store",
+    "name": "Store Name"
+  },
+  "retry": "Retry",
+  "emailLocked": "Email changes require re-authentication",
+  "saved_count": "saved",
+  "guestMessage": "Log in to manage your profile, addresses, and orders.",
+  "savedAddresses": "Saved addresses",
+  "orderHistory": "Order history"
+}

@@ -1,0 +1,36 @@
+{
+  "title": "Settings",
+  "language": {
+    "title": "Language",
+    "current": "Current Language"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "notifications": "Notifications",
+    "notificationsDesc": "Receive notifications about new products",
+    "darkMode": "Dark Mode",
+    "darkModeDesc": "Use dark theme for the app"
+  },
+  "account": {
+    "title": "Account",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "city": "City",
+    "role": "Role"
+  },
+  "support": {
+    "title": "Support",
+    "help": "Help",
+    "helpDesc": "FAQ and technical support",
+    "contact": "Contact Us",
+    "contactDesc": "Send us a message or email",
+    "about": "About",
+    "aboutDesc": "Information about Watani Local and version"
+  },
+  "logout": {
+    "title": "Logout",
+    "message": "Are you sure you want to logout?",
+    "button": "Logout"
+  }
+}
