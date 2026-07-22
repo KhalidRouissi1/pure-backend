@@ -61,10 +61,40 @@ jobs:
 
       - name: Write backend env file
         env:
-          BACKEND_ENV: ${{ secrets.BACKEND_ENV }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: ${{ secrets.BETTER_AUTH_URL }}
+          AUTH_TRUSTED_ORIGINS: ${{ secrets.AUTH_TRUSTED_ORIGINS }}
+          AUTH_REQUIRE_EMAIL_VERIFICATION: ${{ secrets.AUTH_REQUIRE_EMAIL_VERIFICATION }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          AUTH_EMAIL_FROM: ${{ secrets.AUTH_EMAIL_FROM }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          PORT: ${{ secrets.PORT }}
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
         run: |
-          test -n "$BACKEND_ENV"
-          printf '%s\n' "$BACKEND_ENV" > pure-backend.env
+          test -n "$DATABASE_URL"
+          test -n "$BETTER_AUTH_SECRET"
+          test -n "$BETTER_AUTH_URL"
+          test -n "$AUTH_TRUSTED_ORIGINS"
+          test -n "$CORS_ORIGIN"
+          {
+            printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
+            printf 'BETTER_AUTH_SECRET=%s\n' "$BETTER_AUTH_SECRET"
+            printf 'BETTER_AUTH_URL=%s\n' "$BETTER_AUTH_URL"
+            printf 'AUTH_TRUSTED_ORIGINS=%s\n' "$AUTH_TRUSTED_ORIGINS"
+            printf 'AUTH_REQUIRE_EMAIL_VERIFICATION=%s\n' "${AUTH_REQUIRE_EMAIL_VERIFICATION:-false}"
+            printf 'RESEND_API_KEY=%s\n' "$RESEND_API_KEY"
+            printf 'AUTH_EMAIL_FROM=%s\n' "$AUTH_EMAIL_FROM"
+            printf 'CLOUDINARY_CLOUD_NAME=%s\n' "$CLOUDINARY_CLOUD_NAME"
+            printf 'CLOUDINARY_API_KEY=%s\n' "$CLOUDINARY_API_KEY"
+            printf 'CLOUDINARY_API_SECRET=%s\n' "$CLOUDINARY_API_SECRET"
+            printf 'PORT=%s\n' "${PORT:-3000}"
+            printf 'NODE_ENV=%s\n' "${NODE_ENV:-development}"
+            printf 'CORS_ORIGIN=%s\n' "$CORS_ORIGIN"
+          } > pure-backend.env
           chmod 600 pure-backend.env
 
       - name: Upload deploy files
