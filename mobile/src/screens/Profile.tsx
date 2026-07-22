@@ -20,11 +20,13 @@ import EditInfoModal from '../components/EditInfoModal';
 import AvatarPicker from '../components/AvatarPicker';
 import apiService from '../services/api';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 export default function Profile({ navigation }: any) {
   const { user, logout, updateUser } = useAuth();
   const { t } = useTranslation(['profile', 'common']);
   const insets = useSafeAreaInsets();
+  const layout = useResponsiveLayout();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [editField, setEditField] = useState<{ key: string; label: string; value: string } | null>(
@@ -41,7 +43,7 @@ export default function Profile({ navigation }: any) {
       if (!editField || !user) return;
       setSaving(true);
       try {
-        const response: any = await apiService.patch('/auth/profile', {
+        const response: any = await apiService.patch('/users/profile', {
           [editField.key]: newValue,
         });
         const updatedUser = response?.data || response;
@@ -60,7 +62,7 @@ export default function Profile({ navigation }: any) {
     async (url: string) => {
       if (!user) return;
       try {
-        const response: any = await apiService.patch('/auth/profile', { avatarUrl: url });
+        const response: any = await apiService.patch('/users/profile', { avatarUrl: url });
         const updatedUser = response?.data || response;
         updateUser({ ...user, ...updatedUser });
       } catch {
@@ -90,7 +92,17 @@ export default function Profile({ navigation }: any) {
   return (
     <View style={styles.container}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 8, paddingBottom: 100 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: insets.top + 8,
+            paddingBottom: 100,
+            paddingHorizontal: layout.gutter,
+            maxWidth: 760,
+            width: '100%',
+            alignSelf: 'center',
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerRow}>
@@ -134,17 +146,35 @@ export default function Profile({ navigation }: any) {
           <InfoRow label={t('fields.role')} value={t(`roleBadge.${user.role}`)} locked />
         </View>
 
-        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('AddressBook')}>
-          <Ionicons name="location-outline" size={20} color={colors.secondary} />
-          <Text style={styles.linkText}>{t('savedAddresses')}</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-        </TouchableOpacity>
+        {user.role !== Role.ADMIN && (
+          <>
+            <TouchableOpacity
+              style={styles.linkRow}
+              onPress={() => navigation.navigate('AddressBook')}
+            >
+              <Ionicons name="location-outline" size={20} color={colors.secondary} />
+              <Text style={styles.linkText}>{t('savedAddresses')}</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('Orders')}>
-          <Ionicons name="receipt-outline" size={20} color={colors.secondary} />
-          <Text style={styles.linkText}>{t('orderHistory')}</Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.linkRow} onPress={() => navigation.navigate('Orders')}>
+              <Ionicons name="receipt-outline" size={20} color={colors.secondary} />
+              <Text style={styles.linkText}>{t('orderHistory')}</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+            </TouchableOpacity>
+          </>
+        )}
+
+        {user.role === Role.USER && (
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={() => navigation.navigate('CreateStore')}
+          >
+            <Ionicons name="storefront-outline" size={20} color={colors.secondary} />
+            <Text style={styles.linkText}>{t('sellerApplication')}</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+          </TouchableOpacity>
+        )}
 
         {!!error && <Text style={styles.errorText}>{error}</Text>}
 

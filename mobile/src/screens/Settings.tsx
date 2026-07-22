@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Switch } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, Alert, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
@@ -8,13 +8,19 @@ import BackHeader from '../components/BackHeader';
 import { colors } from '../theme/colors';
 import { FontFamilies } from '../theme/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { MAX_FORM_WIDTH } from '../utils/responsive';
 
-export default function Settings() {
-  const { user, logout } = useAuth();
+export default function Settings({
+  navigation,
+}: {
+  navigation: { navigate: (screen: string, params?: object) => void };
+}) {
+  const { user, logout, deleteAccount } = useAuth();
   const { t, i18n } = useTranslation(['common', 'settings']);
   const insets = useSafeAreaInsets();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const layout = useResponsiveLayout();
+  const supportEmail = process.env.EXPO_PUBLIC_SUPPORT_EMAIL || 'support@pure.app';
 
   const handleLogout = () => {
     Alert.alert(t('settings:logout.title'), t('settings:logout.message'), [
@@ -30,12 +36,35 @@ export default function Settings() {
     ]);
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(t('settings:deleteAccount.title'), t('settings:deleteAccount.message'), [
+      { text: t('common:cancel'), style: 'cancel' },
+      {
+        text: t('settings:deleteAccount.button'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteAccount();
+          } catch {
+            Alert.alert(t('common:error'), t('settings:deleteAccount.error'));
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <View style={styles.root}>
       <BackHeader title={t('settings:title')} />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 32,
+          paddingHorizontal: layout.gutter,
+          maxWidth: MAX_FORM_WIDTH,
+          width: '100%',
+          alignSelf: 'center',
+        }}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
@@ -51,41 +80,6 @@ export default function Settings() {
               </View>
             </View>
             <LanguageSwitcher />
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('settings:preferences.title')}</Text>
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="notifications-outline" size={20} color={colors.secondary} />
-              <View style={styles.settingTextWrap}>
-                <Text style={styles.settingLabel}>{t('settings:preferences.notifications')}</Text>
-                <Text style={styles.settingDesc}>{t('settings:preferences.notificationsDesc')}</Text>
-              </View>
-            </View>
-            <Switch
-              value={notificationsEnabled}
-              onValueChange={setNotificationsEnabled}
-              trackColor={{ false: colors.border, true: colors.secondaryLight }}
-              thumbColor={notificationsEnabled ? colors.secondary : colors.surface}
-            />
-          </View>
-          <View style={styles.settingDivider} />
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Ionicons name="moon-outline" size={20} color={colors.secondary} />
-              <View style={styles.settingTextWrap}>
-                <Text style={styles.settingLabel}>{t('settings:preferences.darkMode')}</Text>
-                <Text style={styles.settingDesc}>{t('settings:preferences.darkModeDesc')}</Text>
-              </View>
-            </View>
-            <Switch
-              value={darkModeEnabled}
-              onValueChange={setDarkModeEnabled}
-              trackColor={{ false: colors.border, true: colors.secondaryLight }}
-              thumbColor={darkModeEnabled ? colors.secondary : colors.surface}
-            />
           </View>
         </View>
 
@@ -127,18 +121,24 @@ export default function Settings() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('settings:support.title')}</Text>
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => navigation.navigate('LegalDocument', { document: 'privacy' })}
+          >
             <View style={styles.settingInfo}>
               <Ionicons name="help-circle-outline" size={20} color={colors.secondary} />
               <View style={styles.settingTextWrap}>
-                <Text style={styles.settingLabel}>{t('settings:support.help')}</Text>
-                <Text style={styles.settingDesc}>{t('settings:support.helpDesc')}</Text>
+                <Text style={styles.settingLabel}>{t('settings:support.privacy')}</Text>
+                <Text style={styles.settingDesc}>{t('settings:support.privacyDesc')}</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
           </TouchableOpacity>
           <View style={styles.settingDivider} />
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => void Linking.openURL(`mailto:${supportEmail}`)}
+          >
             <View style={styles.settingInfo}>
               <Ionicons name="mail-outline" size={20} color={colors.secondary} />
               <View style={styles.settingTextWrap}>
@@ -149,12 +149,15 @@ export default function Settings() {
             <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
           </TouchableOpacity>
           <View style={styles.settingDivider} />
-          <TouchableOpacity style={styles.settingRow}>
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => navigation.navigate('LegalDocument', { document: 'terms' })}
+          >
             <View style={styles.settingInfo}>
               <Ionicons name="information-circle-outline" size={20} color={colors.secondary} />
               <View style={styles.settingTextWrap}>
-                <Text style={styles.settingLabel}>{t('settings:support.about')}</Text>
-                <Text style={styles.settingDesc}>{t('settings:support.aboutDesc')}</Text>
+                <Text style={styles.settingLabel}>{t('settings:support.terms')}</Text>
+                <Text style={styles.settingDesc}>{t('settings:support.termsDesc')}</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
@@ -164,6 +167,11 @@ export default function Settings() {
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={18} color={colors.error} />
           <Text style={styles.logoutButtonText}>{t('settings:logout.button')}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={handleDeleteAccount}>
+          <Ionicons name="trash-outline" size={18} color={colors.error} />
+          <Text style={styles.logoutButtonText}>{t('settings:deleteAccount.button')}</Text>
         </TouchableOpacity>
 
         <Text style={styles.versionText}>{t('common:version', { ns: 'common' })}</Text>

@@ -18,9 +18,11 @@ import BackHeader from '../components/BackHeader';
 import { getAllUsers, updateUserRole } from '../services/admin';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Role, User } from '../types';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 export default function UserManagement() {
   const insets = useSafeAreaInsets();
+  const layout = useResponsiveLayout();
   const { t } = useTranslation(['common', 'admin']);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function UserManagement() {
 
   const handleRoleChange = (userId: string, currentRole: Role) => {
     const roles: Role[] = [Role.USER, Role.SELLER, Role.ADMIN];
-    const buttons: AlertButton[] = roles.map(role => ({
+    const buttons: AlertButton[] = roles.map((role) => ({
       text: role,
       onPress: async () => {
         if (role === currentRole) return;
@@ -60,7 +62,7 @@ export default function UserManagement() {
       style: role === Role.ADMIN ? 'destructive' : 'default',
     }));
     buttons.push({ text: t('common:cancel'), style: 'cancel' });
-    
+
     Alert.alert(
       t('admin:change_user_role'),
       t('admin:current_role', { role: currentRole }),
@@ -72,7 +74,11 @@ export default function UserManagement() {
     const q = query.trim().toLowerCase();
     return users.filter((user) => {
       const matchesRole = roleFilter === 'ALL' || user.role === roleFilter;
-      const matchesQuery = !q || [user.email, user.name, user.city, user.phone].filter(Boolean).some((value) => String(value).toLowerCase().includes(q));
+      const matchesQuery =
+        !q ||
+        [user.email, user.name, user.city, user.phone]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(q));
       return matchesRole && matchesQuery;
     });
   }, [query, roleFilter, users]);
@@ -84,13 +90,15 @@ export default function UserManagement() {
           <Text style={styles.avatarText}>{item.email[0].toUpperCase()}</Text>
         </View>
         <View style={styles.details}>
-          <Text style={styles.email} numberOfLines={1}>{item.email}</Text>
+          <Text style={styles.email} numberOfLines={1}>
+            {item.email}
+          </Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>{item.role}</Text>
           </View>
         </View>
       </View>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.actionButton}
         onPress={() => handleRoleChange(item.id, item.role)}
       >
@@ -101,16 +109,31 @@ export default function UserManagement() {
 
   return (
     <View style={styles.root}>
-      <BackHeader title={t('admin:user_management')} subtitle={t('admin:user_management_subtitle')} />
-      <View style={styles.filters}>
+      <BackHeader
+        title={t('admin:user_management')}
+        subtitle={t('admin:user_management_subtitle')}
+      />
+      <View style={[styles.filters, { paddingHorizontal: layout.outerInset + layout.gutter }]}>
         <View style={styles.searchBox}>
           <Ionicons name="search-outline" size={18} color={colors.textSecondary} />
-          <TextInput style={styles.searchInput} value={query} onChangeText={setQuery} placeholder={t('common:search')} placeholderTextColor={colors.textTertiary} />
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('common:search')}
+            placeholderTextColor={colors.textTertiary}
+          />
         </View>
         <View style={styles.filterRow}>
           {(['ALL', Role.USER, Role.SELLER, Role.ADMIN] as const).map((role) => (
-            <TouchableOpacity key={role} style={[styles.filterChip, roleFilter === role && styles.filterChipActive]} onPress={() => setRoleFilter(role)}>
-              <Text style={[styles.filterText, roleFilter === role && styles.filterTextActive]}>{role === 'ALL' ? t('common:all') : role}</Text>
+            <TouchableOpacity
+              key={role}
+              style={[styles.filterChip, roleFilter === role && styles.filterChipActive]}
+              onPress={() => setRoleFilter(role)}
+            >
+              <Text style={[styles.filterText, roleFilter === role && styles.filterTextActive]}>
+                {role === 'ALL' ? t('common:all') : role}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -119,8 +142,17 @@ export default function UserManagement() {
         data={filteredUsers}
         keyExtractor={(item) => item.id}
         renderItem={renderUserItem}
-        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 20 }]}
-        onRefresh={() => { setRefreshing(true); loadUsers(); }}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            paddingBottom: insets.bottom + 20,
+            paddingHorizontal: layout.outerInset + layout.gutter,
+          },
+        ]}
+        onRefresh={() => {
+          setRefreshing(true);
+          loadUsers();
+        }}
         refreshing={refreshing}
         ListEmptyComponent={
           loading ? null : (
@@ -136,15 +168,33 @@ export default function UserManagement() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
-  filters: { paddingHorizontal: 16, paddingBottom: 6 },
-  searchBox: { height: 46, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, marginBottom: 10 },
+  filters: { paddingBottom: 6 },
+  searchBox: {
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
   searchInput: { flex: 1, ...typography.body2, color: colors.text, paddingVertical: 0 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
   filterChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
   filterText: { ...typography.caption, color: colors.textSecondary },
   filterTextActive: { color: colors.primaryDark },
-  listContent: { padding: 16 },
+  listContent: { paddingVertical: 16 },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',

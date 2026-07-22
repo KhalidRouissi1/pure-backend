@@ -10,6 +10,14 @@ import { colors } from './src/theme/colors';
 import { fontConfig } from './src/theme/fonts';
 import { AuthProvider } from './src/hooks/useAuth';
 import './src/i18n/config';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enabled: Boolean(process.env.EXPO_PUBLIC_SENTRY_DSN),
+  sendDefaultPii: false,
+  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0,
+});
 
 const theme = {
   ...DefaultTheme,
@@ -32,7 +40,7 @@ const theme = {
 
 SplashScreen.preventAutoHideAsync();
 
-export default function App() {
+function App() {
   const [fontsLoaded, fontError] = useFonts(fontConfig);
 
   useEffect(() => {
@@ -60,3 +68,5 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(App);

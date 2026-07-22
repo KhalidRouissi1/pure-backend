@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
 import { AddressesService } from './addresses.service';
 import { CreateAddressDto, UpdateAddressDto } from './dtos/address.dto';
 
 @Controller('addresses')
-@UseGuards(JwtAuthGuard)
+@UseGuards(SessionAuthGuard)
 export class AddressesController {
   constructor(private addressesService: AddressesService) {}
 

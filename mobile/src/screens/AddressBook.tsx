@@ -9,9 +9,16 @@ import { FontFamilies } from '../theme/fonts';
 import { Address } from '../types';
 import { createAddress, getAddresses } from '../services/addresses';
 import SaudiLocationPicker from '../components/SaudiLocationPicker';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { MAX_FORM_WIDTH } from '../utils/responsive';
 
 export default function AddressBook() {
   const { t } = useTranslation('common');
+  const layout = useResponsiveLayout();
+  const contentInset = Math.max(
+    layout.outerInset + layout.gutter,
+    (layout.width - MAX_FORM_WIDTH) / 2
+  );
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [form, setForm] = useState({
     label: 'Home',
@@ -29,7 +36,11 @@ export default function AddressBook() {
     setAddresses(await getAddresses());
   }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const addAddress = async () => {
     if (!form.recipient || !form.phone || !form.city || !form.addressText) {
@@ -69,7 +80,7 @@ export default function AddressBook() {
       <FlatList
         data={addresses}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingHorizontal: contentInset }]}
         ListHeaderComponent={
           <View style={styles.form}>
             <Text style={styles.sectionTitle}>{t('add_address')}</Text>
@@ -106,11 +117,20 @@ export default function AddressBook() {
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.label}{item.isDefault ? ` · ${t('default')}` : ''}</Text>
-            <Text style={styles.cardText}>{item.recipient} · {item.phone}</Text>
-            <Text style={styles.cardText}>{item.addressText || item.line1}, {item.city}</Text>
+            <Text style={styles.cardTitle}>
+              {item.label}
+              {item.isDefault ? ` · ${t('default')}` : ''}
+            </Text>
+            <Text style={styles.cardText}>
+              {item.recipient} · {item.phone}
+            </Text>
+            <Text style={styles.cardText}>
+              {item.addressText || item.line1}, {item.city}
+            </Text>
             {item.latitude && item.longitude ? (
-              <Text style={styles.cardMeta}>{item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}</Text>
+              <Text style={styles.cardMeta}>
+                {item.latitude.toFixed(4)}, {item.longitude.toFixed(4)}
+              </Text>
             ) : null}
           </View>
         )}
@@ -121,14 +141,44 @@ export default function AddressBook() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F7F7F2' },
-  content: { padding: 16, paddingBottom: 100 },
-  form: { backgroundColor: '#FFFFFF', borderRadius: 18, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#E3E8DD' },
-  sectionTitle: { fontFamily: FontFamilies.bold, fontSize: 18, color: colors.text, marginBottom: 10 },
+  content: { paddingVertical: 16, paddingBottom: 100 },
+  form: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E3E8DD',
+  },
+  sectionTitle: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 18,
+    color: colors.text,
+    marginBottom: 10,
+  },
   input: { marginBottom: 8, backgroundColor: '#FFFFFF' },
-  primaryButton: { backgroundColor: '#0AAD0A', borderRadius: 16, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  primaryButton: {
+    backgroundColor: '#0AAD0A',
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 4,
+  },
   primaryText: { fontFamily: FontFamilies.bold, color: '#FFFFFF' },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#E3E8DD' },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E3E8DD',
+  },
   cardTitle: { fontFamily: FontFamilies.bold, color: colors.text },
   cardText: { fontFamily: FontFamilies.regular, color: colors.textSecondary, marginTop: 3 },
-  cardMeta: { fontFamily: FontFamilies.regular, color: colors.textTertiary, marginTop: 3, fontSize: 12 },
+  cardMeta: {
+    fontFamily: FontFamilies.regular,
+    color: colors.textTertiary,
+    marginTop: 3,
+    fontSize: 12,
+  },
 });

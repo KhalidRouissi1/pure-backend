@@ -62,6 +62,8 @@ export interface Product {
   name: string;
   description: string;
   price: string;
+  inventoryQuantity: number;
+  isActive: boolean;
   imageUrls: string[];
   category: Category;
   originAddressText?: string;

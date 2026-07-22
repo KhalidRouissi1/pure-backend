@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, Matches } from 'class-validator';
+import { IsOptional, IsString, IsUrl, MaxLength, Matches, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class UpdateProfileDto {
@@ -6,10 +6,11 @@ export class UpdateProfileDto {
   @IsString()
   @Transform(({ value }: { value: string }) => value?.trim())
   @MaxLength(50)
+  @MinLength(2)
   name?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUrl({ protocols: ['https'], require_protocol: true })
   avatarUrl?: string;
 
   @IsOptional()

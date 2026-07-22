@@ -1,0 +1,77 @@
+name: Configure Nginx
+
+on:
+  workflow_dispatch:
+
+jobs:
+  nginx:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure SSH
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          test -n "$EC2_HOST"
+          test -n "$EC2_SSH_KEY"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Configure nginx proxy
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          test -n "$EC2_USER"
+          ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" 'bash -s' <<'EOF'
+          set -euo pipefail
+
+          if ! command -v nginx >/dev/null 2>&1; then
+            if command -v dnf >/dev/null 2>&1; then
+              sudo dnf install -y nginx
+            else
+              sudo yum install -y nginx
+            fi
+          fi
+
+          PORT=""
+          for CANDIDATE in 8080 8081 3001 3002; do
+            if ! sudo ss -ltn "sport = :$CANDIDATE" | grep -q ":$CANDIDATE"; then
+              PORT="$CANDIDATE"
+              break
+            fi
+          done
+
+          if [ -z "$PORT" ]; then
+            echo "No free nginx proxy port found" >&2
+            exit 1
+          fi
+
+          sudo tee /etc/nginx/conf.d/pure-backend.conf >/dev/null <<NGINX
+          server {
+              listen $PORT;
+              server_name _;
+
+              client_max_body_size 30m;
+
+              location / {
+                  proxy_pass http://127.0.0.1:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+              }
+          }
+          NGINX
+
+          sudo nginx -t
+          sudo systemctl enable nginx
+          sudo systemctl reload nginx || sudo systemctl restart nginx
+          curl -fsS "http://127.0.0.1:$PORT/api/health/live"
+          echo "NGINX_BACKEND_PORT=$PORT"
+          EOF

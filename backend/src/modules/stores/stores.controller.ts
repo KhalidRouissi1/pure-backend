@@ -2,33 +2,29 @@ import {
   Controller, 
   Get, 
   Post, 
-  Put, 
   Patch, 
   Delete, 
   Body, 
   Param, 
   Query, 
   UseGuards, 
-  Request, 
-  UsePipes 
+  Request
 } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
 import { StoresService } from './stores.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
+import { OptionalSessionAuthGuard } from '../../common/guards/optional-session-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/decorators/roles.decorator';
-import { CreateStoreDto } from './dtos/create-store.dto';
-import { ValidationPipe } from '../../common/pipes/validation.pipe';
+import { CreateStoreDto, StoreQueryDto, SubmitCertificationDto, UpdateStoreDto, VerifyStoreDto } from './dtos/create-store.dto';
 
 @Controller('stores')
 export class StoresController {
   constructor(private readonly storesService: StoresService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER, Role.ADMIN)
-  @UsePipes(new ValidationPipe())
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(Role.USER, Role.SELLER, Role.ADMIN)
   async create(@Body() createStoreDto: CreateStoreDto, @Request() req: any) {
     const userId = req.user.sub;
     const store = await this.storesService.create(createStoreDto, userId);
@@ -41,17 +37,18 @@ export class StoresController {
   }
 
   @Get()
-  async findAll(@Query() query: any, @Request() req: any) {
+  @UseGuards(OptionalSessionAuthGuard)
+  async findAll(@Query() query: StoreQueryDto, @Request() req: any) {
     const userId = req.user?.sub;
     const userRole = req.user?.role;
 
     const { verified, category, page, limit } = query;
 
-    const result = await this.storesService.findAll(userId, {
-      verified: verified !== undefined ? verified === 'true' : undefined,
+    const result = await this.storesService.findAll(userId, userRole, {
+      verified,
       category,
-      page: page ? parseInt(page) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
+      page,
+      limit,
     });
 
     return {
@@ -65,8 +62,8 @@ export class StoresController {
   }
 
   @Get('me/dashboard')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.SELLER)
+  @UseGuards(SessionAuthGuard, RolesGuard)
+  @Roles(Role.USER, Role.SELLER)
   async getSellerDashboard(@Request() req: any) {
     const userId = req.user.sub;
     const dashboard = await this.storesService.getSellerDashboard(userId);
@@ -78,7 +75,7 @@ export class StoresController {
   }
 
   @Get('pending')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(SessionAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   async getPendingStores() {
     const stores = await this.storesService.getPendingStores();
@@ -104,11 +101,10 @@ export class StoresController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @UsePipes(new ValidationPipe())
+  @UseGuards(SessionAuthGuard, RolesGuard)
   async update(
     @Param('id') id: string,
-    @Body() updateStoreDto: Partial<CreateStoreDto>,
+    @Body() updateStoreDto: UpdateStoreDto,
     @Request() req: any
   ) {
     const userId = req.user.sub;
@@ -124,15 +120,15 @@ export class StoresController {
   }
 
   @Post(':id/verify')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(SessionAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   async verifyStore(
     @Param('id') id: string,
-    @Body('isVerified') isVerified: boolean
+    @Body() dto: VerifyStoreDto,
   ) {
-    const store = await this.storesService.verifyStore(id, isVerified);
+    const store = await this.storesService.verifyStore(id, dto.isVerified);
 
-    const message = isVerified 
+    const message = dto.isVerified
       ? 'Store verified successfully. Products are now visible in the marketplace.'
       : 'Store verification revoked. Products are no longer visible in the marketplace.';
 
@@ -144,14 +140,14 @@ export class StoresController {
   }
 
   @Post(':id/certification')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(SessionAuthGuard, RolesGuard)
   @Roles(Role.SELLER, Role.ADMIN)
   async submitCertification(
     @Param('id') id: string,
-    @Body('certificationUrl') certificationUrl: string,
+    @Body() dto: SubmitCertificationDto,
     @Request() req: any
   ) {
-    const store = await this.storesService.submitCertification(id, certificationUrl, req.user.sub, req.user.role);
+    const store = await this.storesService.submitCertification(id, dto.certificationUrl, req.user.sub, req.user.role);
     return {
       success: true,
       data: store,
@@ -160,7 +156,7 @@ export class StoresController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(SessionAuthGuard, RolesGuard)
   async delete(@Param('id') id: string, @Request() req: any) {
     const userId = req.user.sub;
     const userRole = req.user.role;

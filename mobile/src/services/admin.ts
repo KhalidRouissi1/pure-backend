@@ -1,4 +1,5 @@
-import api from './api';
+import api, { ApiEnvelope, unwrapData, unwrapItems } from './api';
+import { Store, User } from '../types';
 
 export interface AdminDashboardStats {
   totalUsers: number;
@@ -21,6 +22,11 @@ export interface AdminDashboardStats {
   newOrders7d: number;
   trustedBadgeCount: number;
   avgProductsPerStore: number;
+}
+
+interface AdminListResponse<T> {
+  items: T[];
+  pagination?: unknown;
 }
 
 const defaultStats: AdminDashboardStats = {
@@ -48,8 +54,8 @@ const defaultStats: AdminDashboardStats = {
 
 export const getPendingStores = async () => {
   try {
-    const response: any = await api.get('/admin/pending-stores');
-    return response?.data || [];
+    const response = await api.get<ApiEnvelope<Store[]>>('/admin/pending-stores');
+    return unwrapItems<Store>(response);
   } catch {
     return [];
   }
@@ -57,8 +63,8 @@ export const getPendingStores = async () => {
 
 export const getAdminDashboardStats = async (): Promise<AdminDashboardStats> => {
   try {
-    const response: any = await api.get('/admin/dashboard');
-    return response?.data?.stats || defaultStats;
+    const response = await api.get<ApiEnvelope<{ stats?: AdminDashboardStats }>>('/admin/dashboard');
+    return unwrapData(response, { stats: defaultStats }).stats ?? defaultStats;
   } catch {
     return defaultStats;
   }
@@ -66,8 +72,8 @@ export const getAdminDashboardStats = async (): Promise<AdminDashboardStats> => 
 
 export const getAdminDashboardFull = async () => {
   try {
-    const response: any = await api.get('/admin/dashboard');
-    return response?.data || {};
+    const response = await api.get<ApiEnvelope<Record<string, unknown>>>('/admin/dashboard');
+    return unwrapData(response, {});
   } catch {
     return {};
   }
@@ -75,8 +81,8 @@ export const getAdminDashboardFull = async () => {
 
 export const getRecentStores = async (limit: number = 10) => {
   try {
-    const response: any = await api.get(`/admin/stores/recent?limit=${limit}`);
-    return response?.data || [];
+    const response = await api.get<ApiEnvelope<unknown[]>>(`/admin/stores/recent?limit=${limit}`);
+    return unwrapItems(response);
   } catch {
     return [];
   }
@@ -84,26 +90,26 @@ export const getRecentStores = async (limit: number = 10) => {
 
 export const getRecentProducts = async (limit: number = 10) => {
   try {
-    const response: any = await api.get(`/admin/products/recent?limit=${limit}`);
-    return response?.data || [];
+    const response = await api.get<ApiEnvelope<unknown[]>>(`/admin/products/recent?limit=${limit}`);
+    return unwrapItems(response);
   } catch {
     return [];
   }
 };
 
 export const getAdminOrders = async () => {
-  const response: any = await api.get('/admin/orders');
-  return response?.data || [];
+  const response = await api.get<ApiEnvelope<unknown[]>>('/admin/orders');
+  return unwrapItems(response);
 };
 
 export const getPendingReviews = async () => {
-  const response: any = await api.get('/admin/reviews/pending');
-  return response?.data || [];
+  const response = await api.get<ApiEnvelope<unknown[]>>('/admin/reviews/pending');
+  return unwrapItems(response);
 };
 
 export const moderateReview = async (reviewId: string, status: 'APPROVED' | 'REJECTED') => {
-  const response: any = await api.post(`/admin/reviews/${reviewId}/moderate`, { status });
-  return response?.data;
+  const response = await api.post<ApiEnvelope<unknown>>(`/admin/reviews/${reviewId}/moderate`, { status });
+  return unwrapData(response, null);
 };
 
 export const reviewCertification = async (
@@ -111,26 +117,26 @@ export const reviewCertification = async (
   status: 'APPROVED' | 'REJECTED',
   notes?: string,
 ) => {
-  const response: any = await api.post(`/admin/stores/${storeId}/certification-review`, { status, notes });
-  return response?.data;
+  const response = await api.post<ApiEnvelope<unknown>>(`/admin/stores/${storeId}/certification-review`, { status, notes });
+  return unwrapData(response, null);
 };
 
 export const getAllUsers = async (page: number = 1, limit: number = 20) => {
-  const response: any = await api.get(`/admin/users?page=${page}&limit=${limit}`);
-  return response?.data;
+  const response = await api.get<ApiEnvelope<AdminListResponse<User>>>(`/admin/users?page=${page}&limit=${limit}`);
+  return unwrapData(response, { items: [] });
 };
 
 export const updateUserRole = async (userId: string, role: string) => {
-  const response: any = await api.patch(`/admin/users/${userId}/role`, { role });
-  return response?.data;
+  const response = await api.patch<ApiEnvelope<unknown>>(`/admin/users/${userId}/role`, { role });
+  return unwrapData(response, null);
 };
 
 export const getAllStores = async (page: number = 1, limit: number = 20) => {
-  const response: any = await api.get(`/admin/stores?page=${page}&limit=${limit}`);
-  return response?.data;
+  const response = await api.get<ApiEnvelope<AdminListResponse<Store>>>(`/admin/stores?page=${page}&limit=${limit}`);
+  return unwrapData(response, { items: [] });
 };
 
 export const deleteStore = async (storeId: string) => {
-  const response: any = await api.delete(`/admin/stores/${storeId}`);
-  return response?.data;
+  const response = await api.delete<ApiEnvelope<unknown>>(`/admin/stores/${storeId}`);
+  return unwrapData(response, null);
 };

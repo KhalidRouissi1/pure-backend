@@ -1,23 +1,12 @@
 import { Injectable, ForbiddenException, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../config/database';
-import { CreateStoreDto, Category } from './dtos/create-store.dto';
+import { CreateStoreDto, UpdateStoreDto, Category } from './dtos/create-store.dto';
 
 interface PaginationOptions {
   page?: number;
   limit?: number;
   verified?: boolean;
   category?: Category;
-}
-
-interface PaginationResult<T> {
-  items: T[];
-  total: number;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
 }
 
 @Injectable()
@@ -29,17 +18,16 @@ export class StoresService {
   async create(createStoreDto: CreateStoreDto, userId: string) {
     this.logger.log(`Creating store for user: ${userId}`);
 
-    // Check if user already has a verified store
-    const existingVerifiedStore = await this.prisma.store.findFirst({
+    // One application per account prevents duplicate pending stores and review spam.
+    const existingStore = await this.prisma.store.findFirst({
       where: {
         ownerId: userId,
-        isVerified: true,
       },
     });
 
-    if (existingVerifiedStore) {
-      this.logger.warn(`User ${userId} already has a verified store`);
-      throw new ForbiddenException('You already have a verified store');
+    if (existingStore) {
+      this.logger.warn(`User ${userId} already has a store or pending application`);
+      throw new ConflictException('You already have a store or pending seller application');
     }
 
     const store = await this.prisma.store.create({
@@ -64,20 +52,19 @@ export class StoresService {
     return store;
   }
 
-  async findAll(userId: string, options: PaginationOptions = {}) {
+  async findAll(userId?: string, userRole?: string, options: PaginationOptions = {}) {
     const { page = 1, limit = 20, verified, category } = options;
     const skip = (page - 1) * limit;
 
     this.logger.log(`Finding stores for user: ${userId}, options: ${JSON.stringify(options)}`);
 
-    const where: any = {};
-    
-    // Regular users and sellers can only see their own unverified stores
-    // Admins can see all stores
-    // Everyone can see verified stores
-    if (verified !== undefined) {
-      where.isVerified = verified;
-    }
+    const where: any = userRole === 'ADMIN'
+      ? {}
+      : userId
+        ? { OR: [{ isVerified: true }, { ownerId: userId }] }
+        : { isVerified: true };
+
+    if (verified !== undefined && (userId || userRole === 'ADMIN')) where.isVerified = verified;
 
     if (category) {
       where.category = category;
@@ -171,7 +158,7 @@ export class StoresService {
     return this.withRatingSummary(store as any);
   }
 
-  async update(id: string, updateStoreDto: Partial<CreateStoreDto>, userId: string, userRole: string) {
+  async update(id: string, updateStoreDto: UpdateStoreDto, userId: string, userRole: string) {
     this.logger.log(`Updating store: ${id} by user: ${userId}`);
 
     const store = await this.prisma.store.findUnique({
@@ -253,17 +240,24 @@ export class StoresService {
       throw new NotFoundException('Store not found');
     }
 
-    const updatedStore = await this.prisma.store.update({
-      where: { id },
-      data: { isVerified },
-      include: {
-        owner: true,
-        _count: {
-          select: {
-            products: true,
-          },
-        },
-      },
+    const updatedStore = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.store.update({
+        where: { id },
+        data: { isVerified },
+        include: { owner: true, _count: { select: { products: true } } },
+      });
+
+      if (updated.owner.role !== 'ADMIN') {
+        const verifiedStoreCount = isVerified
+          ? 1
+          : await tx.store.count({ where: { ownerId: updated.ownerId, isVerified: true } });
+        await tx.user.update({
+          where: { id: updated.ownerId },
+          data: { role: verifiedStoreCount > 0 ? 'SELLER' : 'USER' },
+        });
+      }
+
+      return updated;
     });
 
     this.logger.log(`Store verification status updated: ${id}`);
@@ -403,7 +397,8 @@ export class StoresService {
     const averageRating = reviewCount
       ? Math.round((reviews.reduce((sum: number, review: any) => sum + review.rating, 0) / reviewCount) * 10) / 10
       : 0;
-    const { reviews: _reviews, ...rest } = store;
+    const rest = { ...store };
+    delete rest.reviews;
     return { ...rest, reviewCount, averageRating };
   }
 }

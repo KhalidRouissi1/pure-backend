@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../hooks/useAuth';
 import { Role } from '../types';
@@ -12,6 +12,8 @@ import { useTranslation } from 'react-i18next';
 
 import Login from '../screens/Login';
 import Register from '../screens/Register';
+import ForgotPassword from '../screens/ForgotPassword';
+import ResetPassword from '../screens/ResetPassword';
 import DiscoveryFeed from '../screens/DiscoveryFeed';
 import FavoritesList from '../screens/FavoritesList';
 import SellerDashboard from '../screens/SellerDashboard';
@@ -33,6 +35,7 @@ import AddressBook from '../screens/AddressBook';
 import Orders, { OrderDetail } from '../screens/Orders';
 import Reviews from '../screens/Reviews';
 import AdminOrders from '../screens/AdminOrders';
+import LegalDocument from '../screens/LegalDocument';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -42,12 +45,56 @@ function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={Login} />
       <Stack.Screen name="Register" component={Register} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+      <Stack.Screen name="ResetPassword" component={ResetPassword} />
+      <Stack.Screen name="LegalDocument" component={LegalDocument} />
+    </Stack.Navigator>
+  );
+}
+
+function AppStack() {
+  const { user } = useAuth();
+  const isSeller = user?.role === Role.SELLER;
+  const isAdmin = user?.role === Role.ADMIN;
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="ProductDetail" component={ProductDetail} options={{ title: 'Product' }} />
+      <Stack.Screen name="ProductList" component={ProductList} />
+      <Stack.Screen name="StoreDetail" component={StoreDetail} options={{ title: 'Store' }} />
+      <Stack.Screen name="Reviews" component={Reviews} />
+      {!isAdmin && (
+        <>
+          <Stack.Screen name="Checkout" component={Checkout} />
+          <Stack.Screen name="AddressBook" component={AddressBook} />
+          <Stack.Screen name="Orders" component={Orders} />
+          <Stack.Screen name="OrderDetail" component={OrderDetail} />
+        </>
+      )}
+      <Stack.Screen name="CreateStore" component={CreateStore} />
+      {isSeller && (
+        <>
+          <Stack.Screen name="CreateProduct" component={CreateProduct} />
+          <Stack.Screen name="EditProduct" component={EditProduct} />
+        </>
+      )}
+      {isAdmin && (
+        <>
+          <Stack.Screen name="StoreApproval" component={StoreApproval} />
+          <Stack.Screen name="StoreManagement" component={StoreManagement} />
+          <Stack.Screen name="UserManagement" component={UserManagement} />
+          <Stack.Screen name="AdminOrders" component={AdminOrders} />
+        </>
+      )}
+      <Stack.Screen name="Settings" component={Settings} />
+      <Stack.Screen name="LegalDocument" component={LegalDocument} />
     </Stack.Navigator>
   );
 }
 
 function MainTabs() {
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const { t } = useTranslation('common');
   const isSeller = user?.role === Role.SELLER;
   const isAdmin = user?.role === Role.ADMIN;
@@ -92,7 +139,7 @@ function MainTabs() {
           left: 16,
           right: 16,
           bottom: 8,
-          display: isAuthenticated ? 'flex' : 'none',
+          display: 'flex',
         },
         tabBarLabelStyle: {
           fontSize: 10,
@@ -108,11 +155,13 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Discovery" component={DiscoveryFeed} options={{ title: t('discovery') }} />
-      <Tab.Screen name="Cart" component={Cart} options={{ title: 'Cart' }} />
+      {!isAdmin && <Tab.Screen name="Cart" component={Cart} options={{ title: 'Cart' }} />}
       {isSeller && (
         <Tab.Screen name="Seller" component={SellerDashboard} options={{ title: t('seller') }} />
       )}
-      <Tab.Screen name="Favorites" component={FavoritesList} options={{ title: t('favorites') }} />
+      {!isAdmin && (
+        <Tab.Screen name="Favorites" component={FavoritesList} options={{ title: t('favorites') }} />
+      )}
       {isAdmin && (
         <Tab.Screen name="Admin" component={AdminDashboard} options={{ title: t('admin') }} />
       )}
@@ -122,54 +171,35 @@ function MainTabs() {
 }
 
 function AppNavigator() {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const isSeller = user?.role === Role.SELLER;
-  const isAdmin = user?.role === Role.ADMIN;
+  const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{ headerShown: false }}
-      >
-        <Stack.Screen name="MainTabs" component={MainTabs} />
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Register" component={Register} />
-        <Stack.Screen
-          name="ProductDetail"
-          component={ProductDetail}
-          options={{ title: 'Product' }}
-        />
-        <Stack.Screen name="ProductList" component={ProductList} />
-        <Stack.Screen name="StoreDetail" component={StoreDetail} options={{ title: 'Store' }} />
-        <Stack.Screen name="Reviews" component={Reviews} />
-        {isAuthenticated && (
-          <>
-            <Stack.Screen name="Checkout" component={Checkout} />
-            <Stack.Screen name="AddressBook" component={AddressBook} />
-            <Stack.Screen name="Orders" component={Orders} />
-            <Stack.Screen name="OrderDetail" component={OrderDetail} />
-          </>
-        )}
-        {isSeller && (
-          <>
-            <Stack.Screen name="CreateStore" component={CreateStore} />
-            <Stack.Screen name="CreateProduct" component={CreateProduct} />
-            <Stack.Screen name="EditProduct" component={EditProduct} />
-          </>
-        )}
-        {isAdmin && <Stack.Screen name="StoreApproval" component={StoreApproval} />}
-        {isAdmin && <Stack.Screen name="StoreManagement" component={StoreManagement} />}
-        {isAdmin && <Stack.Screen name="UserManagement" component={UserManagement} />}
-        {isAdmin && <Stack.Screen name="AdminOrders" component={AdminOrders} />}
-        <Stack.Screen name="Settings" component={Settings} />
-      </Stack.Navigator>
+    <NavigationContainer
+      linking={{
+        prefixes: ['pure://'],
+        config: { screens: { ResetPassword: 'reset-password' } },
+      }}
+    >
+      {isAuthenticated ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
   tabIconWrap: {
     width: 44,
     height: 44,

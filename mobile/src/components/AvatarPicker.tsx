@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../theme/colors';
 import { FontFamilies } from '../theme/fonts';
 import { Role } from '../types';
-import { uploadImagesToCloudinary } from '../services/images';
+import { uploadImages } from '../services/images';
 import { useTranslation } from 'react-i18next';
 
 interface AvatarPickerProps {
@@ -49,13 +49,19 @@ export default function AvatarPicker({ name, email, avatarUrl, role, onAvatarCha
       if (result.canceled || !result.assets?.[0]) return;
 
       const asset = result.assets[0];
-      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
-        Alert.alert(t('errors.uploadFailed'), 'Image must be under 5MB');
+      if (asset.fileSize && asset.fileSize > 4 * 1024 * 1024) {
+        Alert.alert(t('errors.uploadFailed'), 'Image must be under 4MB');
+        return;
+      }
+
+      if (!asset.base64) {
+        Alert.alert(t('errors.uploadFailed'));
         return;
       }
 
       setUploading(true);
-      const urls = await uploadImagesToCloudinary([asset.uri]);
+      const dataUrl = `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`;
+      const urls = await uploadImages([dataUrl]);
       if (urls?.[0]) {
         onAvatarChange(urls[0]);
       }

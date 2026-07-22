@@ -1,4 +1,4 @@
-import api from './api';
+import api, { ApiEnvelope, unwrapData, unwrapItems } from './api';
 
 export interface Store {
   id: string;
@@ -51,8 +51,8 @@ export interface StoreWithStats extends Store {
 
 export const getSellerStores = async (): Promise<StoreWithStats[]> => {
   try {
-    const response: any = await api.get('/stores/me/dashboard');
-    return response?.data?.stores || [];
+    const response = await api.get<ApiEnvelope<{ stores?: StoreWithStats[] }>>('/stores/me/dashboard');
+    return unwrapData(response, { stores: [] }).stores ?? [];
   } catch {
     return [];
   }
@@ -88,16 +88,16 @@ export interface CreateStoreData {
 }
 
 export const createStore = async (data: CreateStoreData): Promise<Store> => {
-  const response: any = await api.post('/stores', data);
-  return response?.data;
+  const response = await api.post<ApiEnvelope<Store>>('/stores', data);
+  return unwrapData<Store | undefined>(response, undefined) as Store;
 };
 
 export const updateStore = async (
   storeId: string,
   data: Partial<CreateStoreData>,
 ): Promise<Store> => {
-  const response: any = await api.patch(`/stores/${storeId}`, data);
-  return response?.data;
+  const response = await api.patch<ApiEnvelope<Store>>(`/stores/${storeId}`, data);
+  return unwrapData<Store | undefined>(response, undefined) as Store;
 };
 
 export const deleteStore = async (storeId: string): Promise<void> => {
@@ -105,8 +105,8 @@ export const deleteStore = async (storeId: string): Promise<void> => {
 };
 
 export const verifyStore = async (storeId: string, isVerified: boolean): Promise<Store> => {
-  const response: any = await api.post(`/stores/${storeId}/verify`, { isVerified });
-  return response?.data;
+  const response = await api.post<ApiEnvelope<Store>>(`/stores/${storeId}/verify`, { isVerified });
+  return unwrapData<Store | undefined>(response, undefined) as Store;
 };
 
 export const getStores = async (params?: {
@@ -115,16 +115,16 @@ export const getStores = async (params?: {
   page?: number;
   limit?: number;
 }): Promise<Store[]> => {
-  const response: any = await api.get('/stores', { params });
-  return response?.data || [];
+  const response = await api.get<ApiEnvelope<Store[]>>('/stores', { params });
+  return unwrapItems<Store>(response);
 };
 
 export const getStore = async (storeId: string): Promise<Store> => {
-  const response: any = await api.get(`/stores/${storeId}`);
-  return response?.data;
+  const response = await api.get<ApiEnvelope<Store>>(`/stores/${storeId}`);
+  return unwrapData<Store | undefined>(response, undefined) as Store;
 };
 
 export const submitCertification = async (storeId: string, certificationUrl: string): Promise<Store> => {
-  const response: any = await api.post(`/stores/${storeId}/certification`, { certificationUrl });
-  return response?.data;
+  const response = await api.post<ApiEnvelope<Store>>(`/stores/${storeId}/certification`, { certificationUrl });
+  return unwrapData<Store | undefined>(response, undefined) as Store;
 };

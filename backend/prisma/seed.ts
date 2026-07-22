@@ -1,5 +1,6 @@
+import 'dotenv/config';
 import { Category, OrderStatus, PaymentStatus, PrismaClient, ReviewStatus, Role } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -135,15 +136,24 @@ function daysAgo(days: number) {
 }
 
 async function createUser(email: string, password: string, role: Role, name: string, city: string, phone?: string) {
+  const id = crypto.randomUUID();
   return prisma.user.create({
     data: {
+      id,
       email,
-      password: await bcrypt.hash(password, 10),
+      emailVerified: true,
       name,
       role,
       city,
       phone,
       createdAt: daysAgo(Math.floor(Math.random() * 28) + 1),
+      accounts: {
+        create: {
+          accountId: id,
+          providerId: 'credential',
+          password: await bcrypt.hash(password, 12),
+        },
+      },
     },
   });
 }
@@ -241,6 +251,7 @@ async function main() {
           name: productSeed.name,
           description: productSeed.description,
           price: productSeed.price,
+          inventoryQuantity: 25,
           category: productSeed.category,
           imageUrls: productSeed.imageUrls,
           originCity: productSeed.originCity,

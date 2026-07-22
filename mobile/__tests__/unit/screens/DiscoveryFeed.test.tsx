@@ -108,7 +108,7 @@ describe('DiscoveryFeed Component', () => {
 
     const { getByText } = render(<DiscoveryFeed navigation={{ navigate: jest.fn() }} />);
 
-    const seeAllMeta = await waitFor(() => getByText('4 store'));
+    const seeAllMeta = await waitFor(() => getByText('4 Store'));
     const seeAllTile = seeAllMeta.parent?.parent;
 
     expect(seeAllTile?.props.style).toEqual(expect.objectContaining({ flexGrow: 0 }));

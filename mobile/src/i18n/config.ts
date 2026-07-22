@@ -19,7 +19,7 @@ import arProducts from './ar/products.json';
 import arAdmin from './ar/admin.json';
 import arStores from './ar/stores.json';
 
-const LANGUAGE_KEY = '@watani_language';
+const LANGUAGE_KEY = '@pure_language';
 
 export const supportedLanguages = [
   { code: 'ar', name: 'العربية', rtl: true },
@@ -71,7 +71,7 @@ export const setLanguage = async (languageCode: string) => {
   await AsyncStorage.setItem(LANGUAGE_KEY, languageCode);
 
   const rtl = supportedLanguages.find((l) => l.code === languageCode)?.rtl ?? true;
-  
+
   if (I18nManager.isRTL !== rtl) {
     I18nManager.allowRTL(rtl);
     I18nManager.forceRTL(rtl);

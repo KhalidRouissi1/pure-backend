@@ -1,5 +1,5 @@
 {
-  "name": "watani-local-marketplace",
+  "name": "pure-local-marketplace",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,9 +8,13 @@
     "mobile:ios": "npm --prefix mobile run ios",
     "mobile:android": "npm --prefix mobile run android",
     "mobile:web": "npm --prefix mobile run web",
-    "mobile:test": "npm --prefix mobile test",
+    "mobile:test": "npm --prefix mobile test -- --runInBand",
     "mobile:type-check": "npm --prefix mobile run type-check",
+    "mobile:lint": "npm --prefix mobile run lint",
     "backend": "npm --prefix backend run start:dev",
-    "backend:test": "npm --prefix backend test"
+    "backend:test": "npm --prefix backend test -- --runInBand",
+    "backend:type-check": "npm --prefix backend run type-check",
+    "backend:lint": "npm --prefix backend run lint",
+    "quality": "npm run backend:lint && npm run backend:type-check && npm run backend:test && npm run mobile:lint && npm run mobile:type-check && npm run mobile:test"
   }
 }

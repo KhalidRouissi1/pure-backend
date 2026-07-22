@@ -43,6 +43,18 @@ const translations = {
   error_price_required: 'Price is required',
   error_price_positive: 'Please enter a valid price',
   error_max_images: 'Maximum 5 images allowed',
+  price_placeholder: 'Price (SAR)',
+  inventory_quantity: 'Stock quantity',
+  inventory_placeholder: 'Units available',
+  error_inventory: 'Stock must be a whole number between 0 and 999999',
+  approve: 'Approve',
+  reject: 'Reject',
+  product_count: 'products',
+  loading: 'Loading',
+  verified: 'Verified',
+  pending: 'Pending',
+  store: 'Store',
+  add: 'Add',
   orderOnWhatsApp: 'Order on WhatsApp',
   visit_store: 'Visit',
   description_section: 'Description',
@@ -112,7 +124,7 @@ jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(() =>
     Promise.resolve({
       canceled: false,
-      assets: [{ uri: 'file://mock-image.jpg' }],
+      assets: [{ uri: 'file://mock-image.jpg', mimeType: 'image/jpeg', base64: 'aGVsbG8=' }],
     }),
   ),
 }));

@@ -48,16 +48,16 @@ enum ReviewStatus {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String?
-  avatarUrl String?
-  role      Role     @default(USER)
-  city      String?
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  name          String
+  avatarUrl     String?
+  role          Role     @default(USER)
+  city          String?
+  phone         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   stores    Store[]
   favorites Favorite[]
@@ -65,36 +65,38 @@ model User {
   orders    Order[]
   addresses Address[]
   reviews   Review[]
+  sessions  Session[]
+  accounts  Account[]
 
   @@index([role])
   @@map("users")
 }
 
 model Store {
-  id               String   @id @default(uuid())
-  name             String
-  logoUrl          String?
-  galleryUrls      String[] @default([])
-  description      String
-  addressText      String?
-  city             String?
-  latitude         Float?
-  longitude        Float?
-  category         Category
-  instagramHandle  String?
-  whatsappNumber   String
-  isVerified       Boolean  @default(false)
-  certificationUrl String?
+  id                  String              @id @default(uuid())
+  name                String
+  logoUrl             String?
+  galleryUrls         String[]            @default([])
+  description         String
+  addressText         String?
+  city                String?
+  latitude            Float?
+  longitude           Float?
+  category            Category
+  instagramHandle     String?
+  whatsappNumber      String
+  isVerified          Boolean             @default(false)
+  certificationUrl    String?
   certificationStatus CertificationStatus @default(PENDING)
-  certificationNotes String?
-  trustedBadge     Boolean @default(false)
-  ownerId          String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  certificationNotes  String?
+  trustedBadge        Boolean             @default(false)
+  ownerId             String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
-  owner    User      @relation(fields: [ownerId], references: [id])
-  products Product[]
-  reviews  Review[]
+  owner      User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  products   Product[]
+  reviews    Review[]
   orderItems OrderItem[]
 
   @@index([ownerId])
@@ -105,31 +107,82 @@ model Store {
   @@map("stores")
 }
 
-model Product {
-  id          String   @id @default(uuid())
-  name        String
-  description String
-  price       Decimal  @db.Decimal(10, 2)
-  imageUrls   String[]
-  category    Category
-  originAddressText String?
-  originCity  String?
-  originLatitude Float?
-  originLongitude Float?
-  storeId     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Session {
+  id        String   @id @default(uuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  favorites Favorite[]
-  cartItems CartItem[]
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+model Product {
+  id                String   @id @default(uuid())
+  name              String
+  description       String
+  price             Decimal  @db.Decimal(10, 2)
+  inventoryQuantity Int      @default(0)
+  isActive          Boolean  @default(true)
+  imageUrls         String[]
+  category          Category
+  originAddressText String?
+  originCity        String?
+  originLatitude    Float?
+  originLongitude   Float?
+  storeId           String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  favorites  Favorite[]
+  cartItems  CartItem[]
   orderItems OrderItem[]
-  reviews   Review[]
+  reviews    Review[]
 
   @@index([storeId])
   @@index([category])
   @@index([originCity])
   @@index([createdAt])
+  @@index([isActive, inventoryQuantity])
   @@index([storeId, createdAt])
   @@map("products")
 }

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../config/database';
+import { Role } from '@prisma/client';
 
 export interface AdminDashboardStats {
   totalUsers: number;
@@ -78,13 +79,22 @@ export class AdminService {
       throw new NotFoundException('Store not found');
     }
 
-    const updatedStore = await this.prisma.store.update({
-      where: { id: storeId },
-      data: { isVerified },
-      include: {
-        owner: true,
-        _count: { select: { products: true } },
-      },
+    const updatedStore = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.store.update({
+        where: { id: storeId },
+        data: { isVerified },
+        include: { owner: true, _count: { select: { products: true } } },
+      });
+      if (updated.owner.role !== 'ADMIN') {
+        const verifiedStoreCount = isVerified
+          ? 1
+          : await tx.store.count({ where: { ownerId: updated.ownerId, isVerified: true } });
+        await tx.user.update({
+          where: { id: updated.ownerId },
+          data: { role: verifiedStoreCount > 0 ? 'SELLER' : 'USER' },
+        });
+      }
+      return updated;
     });
 
     this.logger.log(`Store verification status updated: ${storeId}`);
@@ -97,18 +107,21 @@ export class AdminService {
       throw new NotFoundException('Store not found');
     }
 
-    return this.prisma.store.update({
-      where: { id: storeId },
-      data: {
-        certificationStatus: status,
-        certificationNotes: notes,
-        trustedBadge: status === 'APPROVED',
-        isVerified: status === 'APPROVED' ? true : store.isVerified,
-      },
-      include: {
-        owner: true,
-        _count: { select: { products: true } },
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.store.update({
+        where: { id: storeId },
+        data: {
+          certificationStatus: status,
+          certificationNotes: notes,
+          trustedBadge: status === 'APPROVED',
+          isVerified: status === 'APPROVED' ? true : store.isVerified,
+        },
+        include: { owner: true, _count: { select: { products: true } } },
+      });
+      if (status === 'APPROVED' && updated.owner.role === 'USER') {
+        await tx.user.update({ where: { id: updated.ownerId }, data: { role: 'SELLER' } });
+      }
+      return updated;
     });
   }
 
@@ -128,8 +141,6 @@ export class AdminService {
 
   async getAdminDashboardStats(): Promise<AdminDashboardStats> {
     this.logger.log('Fetching admin dashboard stats');
-
-    const now = new Date();
 
     const [
       totalUsers,
@@ -290,7 +301,7 @@ export class AdminService {
     };
   }
 
-  async updateUserRole(userId: string, role: any) {
+  async updateUserRole(userId: string, role: Role) {
     return this.prisma.user.update({
       where: { id: userId },
       data: { role },

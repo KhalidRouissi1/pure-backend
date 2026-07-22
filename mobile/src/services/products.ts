@@ -1,18 +1,21 @@
-import apiService from './api';
+import apiService, { ApiEnvelope, unwrapData, unwrapItems } from './api';
+import { Category } from '../types';
 
 export interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: string;
+  inventoryQuantity: number;
+  isActive: boolean;
   imageUrls: string[];
-  category: string;
+  category: Category;
   originAddressText?: string;
   originCity?: string;
   originLatitude?: number;
   originLongitude?: number;
   storeId: string;
-  store?: {
+  store: {
     id: string;
     name: string;
     logoUrl?: string;
@@ -20,7 +23,7 @@ export interface Product {
     city?: string;
     latitude?: number;
     longitude?: number;
-    category: string;
+    category: Category;
     whatsappNumber: string;
     instagramHandle?: string;
     isVerified: boolean;
@@ -40,6 +43,8 @@ export interface CreateProductData {
   name: string;
   description: string;
   price: number;
+  inventoryQuantity: number;
+  isActive?: boolean;
   category: string;
   imageUrls?: string[];
   storeId?: string;
@@ -61,13 +66,13 @@ export const getProducts = async (params?: {
   sort?: string;
   order?: string;
 }) => {
-  const response: any = await apiService.get('/products', { params });
-  return response?.data?.items || response?.data || [];
+  const response = await apiService.get<ApiEnvelope<Product[] | { items?: Product[] }>>('/products', { params });
+  return unwrapItems<Product>(response);
 };
 
-export const getProductDetail = async (id: string) => {
-  const response: any = await apiService.get(`/products/${id}`);
-  return response?.data;
+export const getProductDetail = async (id: string): Promise<Product> => {
+  const response = await apiService.get<ApiEnvelope<Product>>(`/products/${id}`);
+  return unwrapData<Product | undefined>(response, undefined) as Product;
 };
 
 export const addFavorite = async (productId: string) => {
@@ -79,8 +84,8 @@ export const removeFavorite = async (productId: string) => {
 };
 
 export const getUserFavorites = async (params?: { page?: number; limit?: number }) => {
-  const response: any = await apiService.get('/products/favorites/me', { params });
-  return response?.data?.items || response?.data || [];
+  const response = await apiService.get<ApiEnvelope<unknown[] | { items?: unknown[] }>>('/products/favorites/me', { params });
+  return unwrapItems<unknown>(response);
 };
 
 export const toggleFavorite = async (productId: string, action?: 'add' | 'remove') => {
@@ -102,16 +107,16 @@ export const toggleFavorite = async (productId: string, action?: 'add' | 'remove
 };
 
 export const createProduct = async (data: CreateProductData): Promise<Product> => {
-  const response: any = await apiService.post('/products', data);
-  return response?.data;
+  const response = await apiService.post<ApiEnvelope<Product>>('/products', data);
+  return unwrapData<Product | undefined>(response, undefined) as Product;
 };
 
 export const updateProduct = async (
   productId: string,
   data: Partial<CreateProductData>,
 ): Promise<Product> => {
-  const response: any = await apiService.patch(`/products/${productId}`, data);
-  return response?.data;
+  const response = await apiService.patch<ApiEnvelope<Product>>(`/products/${productId}`, data);
+  return unwrapData<Product | undefined>(response, undefined) as Product;
 };
 
 export const deleteProduct = async (productId: string): Promise<void> => {
@@ -119,6 +124,6 @@ export const deleteProduct = async (productId: string): Promise<void> => {
 };
 
 export const getSellerProducts = async (storeId: string): Promise<Product[]> => {
-  const response: any = await apiService.get('/products', { params: { storeId } });
-  return response?.data?.items || response?.data || [];
+  const response = await apiService.get<ApiEnvelope<Product[] | { items?: Product[] }>>('/products', { params: { storeId } });
+  return unwrapItems<Product>(response);
 };

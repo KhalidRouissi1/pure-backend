@@ -12,4 +12,8 @@ module.exports = {
     '**/*?(.)spec.[jt]s?(x)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  moduleNameMapper: {
+    '^.*services/authClient$': '<rootDir>/__mocks__/authClient.ts',
+    '^\\./authClient$': '<rootDir>/__mocks__/authClient.ts',
+  },
 };

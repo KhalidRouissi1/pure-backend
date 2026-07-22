@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsArray, IsOptional, Min, Max, Length, IsEnum, IsUUID, IsUrl, ArrayMinSize, ArrayMaxSize } from 'class-validator';
+import { IsString, IsNumber, IsArray, IsOptional, Min, Max, Length, IsEnum, IsUUID, IsUrl, ArrayMinSize, ArrayMaxSize, IsIn, IsInt, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Category } from '@prisma/client';
 
@@ -15,6 +15,12 @@ export class CreateProductDto {
   @Min(0.01)
   @Max(999999.99)
   price: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(999999)
+  inventoryQuantity: number;
 
   @IsOptional()
   @IsArray()
@@ -68,6 +74,17 @@ export class UpdateProductDto {
   @Min(0.01)
   @Max(999999.99)
   price?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(999999)
+  inventoryQuantity?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 
   @IsOptional()
   @IsArray()
@@ -152,6 +169,7 @@ export class ProductQueryDto {
 
   @IsOptional()
   @Type(() => String)
+  @IsIn(['createdAt', 'price', 'name'])
   sort?: string = 'createdAt';
 
   @IsOptional()

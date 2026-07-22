@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../config/database';
 import { CreateProductDto, UpdateProductDto, ProductQueryDto, PaginationQueryDto } from './dtos/product.dto';
-import { UsersService } from '../users/users.service';
+import { ImageService } from '../../common/services/image.service';
 
 @Injectable()
 export class ProductsService {
@@ -9,7 +9,7 @@ export class ProductsService {
 
   constructor(
     private prisma: PrismaService,
-    private usersService: UsersService,
+    private imageService: ImageService,
   ) {}
 
   async findAll(query: ProductQueryDto, userId?: string) {
@@ -46,12 +46,18 @@ export class ProductsService {
         // Only apply verified filter if user is NOT the store owner
         if (!store || store.ownerId !== userId) {
           where.store = { isVerified: true };
+          where.isActive = true;
+          where.inventoryQuantity = { gt: 0 };
         }
       } else {
         where.store = { isVerified: true };
+        where.isActive = true;
+        where.inventoryQuantity = { gt: 0 };
       }
     } else {
       where.store = { isVerified: true };
+      where.isActive = true;
+      where.inventoryQuantity = { gt: 0 };
     }
 
     if (category) {
@@ -161,6 +167,7 @@ export class ProductsService {
             instagramHandle: true,
             isVerified: true,
             trustedBadge: true,
+            ownerId: true,
           },
         },
         _count: {
@@ -177,7 +184,8 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
 
-    if (!product.store.isVerified) {
+    const isOwner = userId && product.store.ownerId === userId;
+    if (!isOwner && (!product.store.isVerified || !product.isActive || product.inventoryQuantity < 1)) {
       throw new ForbiddenException('Access denied: Product from unverified store');
     }
 
@@ -363,6 +371,7 @@ export class ProductsService {
         name: createProductDto.name,
         description: createProductDto.description,
         price: createProductDto.price,
+        inventoryQuantity: createProductDto.inventoryQuantity,
         category: createProductDto.category,
         imageUrls: createProductDto.imageUrls || [],
         originAddressText: createProductDto.originAddressText || store.addressText,
@@ -422,6 +431,10 @@ export class ProductsService {
       throw new ForbiddenException('You can only update your own products');
     }
 
+    const removedImageUrls = updateProductDto.imageUrls
+      ? product.imageUrls.filter((url) => !updateProductDto.imageUrls?.includes(url))
+      : [];
+
     const updatedProduct = await this.prisma.product.update({
       where: { id },
       data: updateProductDto,
@@ -443,6 +456,7 @@ export class ProductsService {
     });
 
     this.logger.log(`Product updated successfully: ${id}`);
+    await Promise.allSettled(removedImageUrls.map((url) => this.imageService.deleteByUrl(url)));
     return updatedProduct;
   }
 
@@ -473,38 +487,17 @@ export class ProductsService {
       throw new ForbiddenException('You can only delete your own products');
     }
 
-    // Delete product images
-    if (product.imageUrls && product.imageUrls.length > 0) {
-      this.logger.log(`Processing delete for ${product.imageUrls.length} images`);
-      // Base64 images stored in DB don't need external cleanup
-    }
-
     await this.prisma.product.delete({
       where: { id },
     });
+
+    await Promise.allSettled(product.imageUrls.map((url) => this.imageService.deleteByUrl(url)));
 
     this.logger.log(`Product deleted successfully: ${id}`);
   }
 
   async uploadProductImages(base64Images: string[]) {
-    this.logger.log(`Processing ${base64Images.length} product images`);
-
-    if (base64Images.length < 1) {
-      throw new ForbiddenException('At least 1 image is required');
-    }
-
-    if (base64Images.length > 5) {
-      throw new ForbiddenException('Maximum 5 images allowed');
-    }
-
-    try {
-      // Just return base64 images as-is (no Cloudinary upload needed)
-      this.logger.log(`Successfully processed ${base64Images.length} images`);
-      return base64Images;
-    } catch (error) {
-      this.logger.error(`Failed to process images: ${error.message}`, error.stack);
-      throw new ForbiddenException('Failed to process images');
-    }
+    return this.imageService.uploadProductImages(base64Images);
   }
 
   private withRatingSummary(product: any) {
@@ -513,7 +506,8 @@ export class ProductsService {
     const averageRating = reviewCount
       ? Math.round((reviews.reduce((sum: number, review: any) => sum + review.rating, 0) / reviewCount) * 10) / 10
       : 0;
-    const { reviews: _reviews, ...rest } = product;
+    const rest = { ...product };
+    delete rest.reviews;
     return { ...rest, reviewCount, averageRating };
   }
 }

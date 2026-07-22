@@ -1,35 +1,56 @@
 {
   "expo": {
-    "name": "وطني",
-    "slug": "watani",
+    "name": "Pure",
+    "slug": "pure",
+    "scheme": "pure",
     "version": "1.0.0",
+    "icon": "./assets/pure-icon.png",
     "description": "سوقك المحلي - منتجات سعودية",
-    "platforms": [
-      "ios",
-      "android"
-    ],
+    "platforms": ["ios", "android"],
     "ios": {
-      "bundleIdentifier": "com.watani.localmarketplace",
-      "supportsRTL": true,
+      "bundleIdentifier": "com.pure.localmarketplace",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Watani uses your location to select delivery and farm locations on the map."
+        "NSLocationWhenInUseUsageDescription": "Pure uses your location only when you choose a delivery or farm location on the map.",
+        "NSPhotoLibraryUsageDescription": "Pure lets you choose product, store, and profile photos to upload.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "supportsRTL": true,
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ]
+      "package": "com.pure.localmarketplace",
+      "versionCode": 1,
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
-    "extra": {
-      "supportsRTL": true
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
     },
     "plugins": [
       "expo-asset",
       "expo-localization",
-      "expo-splash-screen",
-      "expo-status-bar"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/pure-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#005B3C"
+        }
+      ],
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pure lets you choose product, store, and profile photos to upload.",
+          "microphonePermission": false
+        }
+      ],
+      "@sentry/react-native/expo",
+      "expo-font"
     ]
   }
 }

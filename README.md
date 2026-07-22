@@ -1,15 +1,15 @@
-# Watani Local - Saudi Marketplace Mobile App
+# Pure - Saudi Marketplace Mobile App
 
 A Saudi-focused mobile marketplace enabling "Made in Saudi" brand discovery with contact-based ordering via WhatsApp.
 
 ## 📋 Overview
 
-Watani Local is a cross-platform mobile application that connects Saudi buyers with local sellers. The app features:
+Pure is a cross-platform mobile application that connects Saudi buyers with local sellers. The app features:
 - Product discovery by category and region
-- WhatsApp-based ordering (no payment gateway required)
+- Server-calculated checkout with payment on delivery
 - Multi-language support (English/Arabic) with RTL layout
 - Admin-managed seller verification
-- Base64 image storage (no external service needed)
+- Signed Cloudinary image uploads (credentials remain server-side)
 
 ## 🏗️ Tech Stack
 
@@ -17,14 +17,14 @@ Watani Local is a cross-platform mobile application that connects Saudi buyers w
 - **Framework**: NestJS 10.x with TypeScript
 - **Database**: PostgreSQL 15+ (NeonDB or local)
 - **ORM**: Prisma
-- **Authentication**: Passport.js with JWT strategy
-- **Image Storage**: Base64 in PostgreSQL database
+- **Authentication**: Better Auth with database-backed sessions
+- **Image Storage**: Cloudinary through signed backend uploads
 - **Logging**: Winston
 
 ### Mobile
-- **Framework**: React Native 0.73 with Expo SDK 50
+- **Framework**: React Native 0.85 with Expo SDK 56
 - **UI Components**: React Native Paper (Material Design)
-- **Styling**: NativeWind (Tailwind CSS for React Native)
+- **UI**: React Native Paper with a shared theme
 - **Navigation**: React Navigation 6.x
 - **Internationalization**: i18next
 - **State Management**: React Context API
@@ -38,7 +38,7 @@ mobileapp/
 │   ├── src/
 │   │   ├── modules/       # Feature modules (auth, users, stores, products, admin)
 │   │   ├── common/        # Shared utilities (guards, interceptors, filters)
-│   │   ├── config/        # Configuration (database, JWT)
+│   │   ├── config/        # Database and application configuration
 │   │   └── main.ts        # Application entry point
 │   ├── prisma/            # Prisma schema and migrations
 │   └── test/              # Backend tests
@@ -93,8 +93,13 @@ cp .env.example .env
 2. Update backend `.env` with your NeonDB URL:
 ```env
 DATABASE_URL="postgresql://neondb_owner:YOUR_PASSWORD@ep-bitter-violet-alewdh1e-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-JWT_SECRET="your-super-secret-jwt-key-min-256-bits"
-JWT_EXPIRATION="7d"
+BETTER_AUTH_SECRET="your-random-secret-at-least-32-characters"
+BETTER_AUTH_URL="http://localhost:3000/api/auth"
+AUTH_TRUSTED_ORIGINS="pure://"
+AUTH_REQUIRE_EMAIL_VERIFICATION="false"
+CLOUDINARY_CLOUD_NAME="your-cloud-name"
+CLOUDINARY_API_KEY="your-api-key"
+CLOUDINARY_API_SECRET="your-api-secret"
 PORT=3000
 NODE_ENV="development"
 CORS_ORIGIN="*"
@@ -108,7 +113,9 @@ cp .env.example .env
 
 4. Update mobile `.env` with backend URL:
 ```env
-API_BASE_URL=http://localhost:3000/api
+EXPO_PUBLIC_API_BASE_URL=http://localhost:3000/api
+EXPO_PUBLIC_SUPPORT_EMAIL=support@pure.app
+EXPO_PUBLIC_SENTRY_DSN=
 ```
 
 ### Database Setup
@@ -137,9 +144,9 @@ npm start
 For mobile:
 - Press `i` for iOS Simulator
 - Press `a` for Android Emulator
-- Scan QR code with Expo Go app for physical device
+- Run `npm run start:lan` before scanning the QR code with Expo Go on a physical device
 
-**Note for Android Emulator**: Use `http://10.0.2.2:3000/api` in mobile `.env` instead of `localhost:3000/api`
+**Note for Android Emulator**: `npm start` advertises Metro over localhost, and `npm run android` sets up `adb reverse` for port `8081` before launching the app. Use `http://10.0.2.2:3000/api` in mobile `.env` instead of `localhost:3000/api`.
 
 ## 👥 User Roles
 
@@ -150,8 +157,11 @@ For mobile:
 ## 🌐 API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
+- `POST /api/auth/sign-up/email` - Register a user
+- `POST /api/auth/sign-in/email` - Sign in
+- `GET /api/auth/get-session` - Read the current session
+- `POST /api/auth/sign-out` - Revoke the current session
+- `POST /api/auth/delete-user` - Permanently delete the current account
 
 ### Stores
 - `GET /api/stores` - List stores (with filters)
@@ -173,6 +183,8 @@ For mobile:
 - `GET /api/admin/dashboard` - Get admin dashboard stats
 
 ## 🧪 Testing
+
+Run the complete local quality gate from the repository root with `npm run quality`. CI runs the same lint, type-check, test, and build checks on pull requests.
 
 ### Backend Tests
 ```bash
@@ -216,11 +228,21 @@ The app supports English and Arabic with automatic RTL layout switching:
 
 ## 🔒 Security
 
-- JWT-based authentication with bcrypt password hashing
+- Better Auth database sessions with bcrypt password hashing
 - Role-based access control (RBAC)
 - Input validation with class-validator
 - Rate limiting on auth endpoints
 - Secure storage with expo-secure-store
+- Server-owned payment status, pricing, inventory, and order totals
+- Signed external image storage with file size and media validation
+- Explicit production CORS, structured logs, readiness checks, and graceful shutdown
+
+## 🚢 Release operations
+
+- [Release runbook](docs/RELEASE_RUNBOOK.md)
+- [Apple and Google checklist](docs/STORE_RELEASE_CHECKLIST.md)
+- [Privacy policy](docs/PRIVACY_POLICY.md)
+- [Terms of service](docs/TERMS_OF_SERVICE.md)
 
 ## 📄 License
 

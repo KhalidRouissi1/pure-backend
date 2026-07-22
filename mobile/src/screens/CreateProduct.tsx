@@ -4,7 +4,7 @@ import { TextInput, Button, Title, Paragraph, Chip, HelperText } from 'react-nat
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { launchImageLibraryAsync, MediaTypeOptions } from 'expo-image-picker';
-import { uploadImagesToCloudinary } from '../services/images';
+import { uploadImages } from '../services/images';
 import { createProduct } from '../services/products';
 import { getSellerStores, StoreWithStats } from '../services/stores';
 import BackHeader from '../components/BackHeader';
@@ -12,16 +12,19 @@ import { colors } from '../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Category, CategoryLabels } from '../types';
 import SaudiLocationPicker from '../components/SaudiLocationPicker';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { MAX_FORM_WIDTH } from '../utils/responsive';
 
 interface ImagePreview {
   uri: string;
-  publicId?: string;
+  dataUrl: string;
 }
 
 export default function CreateProduct() {
   const navigation = useNavigation();
   const route = useRoute();
   const insets = useSafeAreaInsets();
+  const layout = useResponsiveLayout();
   const { t } = useTranslation(['common', 'products']);
   const params = (route.params ?? {}) as { storeId?: string };
   const { storeId } = params;
@@ -32,6 +35,7 @@ export default function CreateProduct() {
     name: '',
     description: '',
     price: '',
+    inventoryQuantity: '',
     category: Category.FRUITS_VEGETABLES,
     originAddressText: '',
     originCity: '',
@@ -44,10 +48,13 @@ export default function CreateProduct() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const categories = Object.values(Category).map((value) => ({ label: CategoryLabels[value], value }));
+  const categories = Object.values(Category).map((value) => ({
+    label: CategoryLabels[value],
+    value,
+  }));
   const selectedStore = useMemo(
     () => stores.find((store) => store.id === selectedStoreId),
-    [selectedStoreId, stores],
+    [selectedStoreId, stores]
   );
 
   const applyStoreOrigin = (store?: StoreWithStats) => {
@@ -90,10 +97,13 @@ export default function CreateProduct() {
       });
 
       if (!result.canceled && result.assets) {
-        const newImages = result.assets.slice(0, 5 - selectedImages.length).map((asset) => ({
-          uri: asset.uri!,
-          publicId: undefined,
-        }));
+        const newImages = result.assets
+          .slice(0, 5 - selectedImages.length)
+          .filter((asset) => asset.base64)
+          .map((asset) => ({
+            uri: asset.uri,
+            dataUrl: `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`,
+          }));
 
         setSelectedImages((prev) => [...prev, ...newImages]);
       }
@@ -136,6 +146,16 @@ export default function CreateProduct() {
       }
     }
 
+    const inventoryQuantity = Number(formData.inventoryQuantity);
+    if (
+      !formData.inventoryQuantity.trim() ||
+      !Number.isInteger(inventoryQuantity) ||
+      inventoryQuantity < 0 ||
+      inventoryQuantity > 999999
+    ) {
+      newErrors.inventoryQuantity = t('products:error_inventory');
+    }
+
     if (selectedImages.length > 5) {
       newErrors.images = t('products:error_max_images');
     }
@@ -162,8 +182,8 @@ export default function CreateProduct() {
     try {
       let uploadedUrls: string[] = [];
       if (selectedImages.length > 0) {
-        const base64Images = selectedImages.map((img) => img.uri);
-        uploadedUrls = await uploadImagesToCloudinary(base64Images);
+        const base64Images = selectedImages.map((img) => img.dataUrl);
+        uploadedUrls = await uploadImages(base64Images);
       }
 
       setSubmitting(true);
@@ -171,6 +191,7 @@ export default function CreateProduct() {
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: parseFloat(formData.price),
+        inventoryQuantity: Number(formData.inventoryQuantity),
         category: formData.category,
         imageUrls: uploadedUrls,
         storeId: selectedStoreId,
@@ -200,7 +221,16 @@ export default function CreateProduct() {
       <BackHeader title={t('products:create_title')} subtitle={t('products:create_subtitle')} />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom: insets.bottom + 24,
+            paddingHorizontal: layout.gutter,
+            maxWidth: MAX_FORM_WIDTH,
+            width: '100%',
+            alignSelf: 'center',
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -246,6 +276,22 @@ export default function CreateProduct() {
           {errors.price}
         </HelperText>
 
+        <TextInput
+          label={`${t('products:inventory_quantity')} *`}
+          value={formData.inventoryQuantity}
+          onChangeText={(text) =>
+            setFormData({ ...formData, inventoryQuantity: text.replace(/[^0-9]/g, '') })
+          }
+          mode="outlined"
+          placeholder={t('products:inventory_placeholder')}
+          keyboardType="number-pad"
+          error={!!errors.inventoryQuantity}
+          style={styles.input}
+        />
+        <HelperText type="error" visible={!!errors.inventoryQuantity}>
+          {errors.inventoryQuantity}
+        </HelperText>
+
         <View style={styles.storeSection}>
           <Paragraph style={styles.label}>{t('products:farm_store_location')} *</Paragraph>
           <View style={styles.categoriesContainer}>
@@ -271,7 +317,9 @@ export default function CreateProduct() {
           </View>
           {selectedStore ? (
             <View style={styles.locationNote}>
-              <Paragraph style={styles.locationTitle}>{selectedStore.city || t('common:saudi_arabia')}</Paragraph>
+              <Paragraph style={styles.locationTitle}>
+                {selectedStore.city || t('common:saudi_arabia')}
+              </Paragraph>
               <Paragraph style={styles.locationText}>
                 {t('products:selected_store_location_note')}
               </Paragraph>
@@ -321,7 +369,9 @@ export default function CreateProduct() {
 
         <View style={styles.imagesSection}>
           <Title style={styles.sectionTitle}>{t('products:product_images')}</Title>
-          <Paragraph style={styles.sectionSubtitle}>{t('products:image_count', { count: selectedImages.length, max: 5 })}</Paragraph>
+          <Paragraph style={styles.sectionSubtitle}>
+            {t('products:image_count', { count: selectedImages.length, max: 5 })}
+          </Paragraph>
 
           <Button
             mode="outlined"
@@ -340,9 +390,15 @@ export default function CreateProduct() {
           {selectedImages.length > 0 && (
             <View style={styles.previewContainer}>
               {selectedImages.map((image, index) => (
-                <View key={index} style={styles.imagePreviewWrapper} testID={`image-preview-${index}`}>
+                <View
+                  key={index}
+                  style={styles.imagePreviewWrapper}
+                  testID={`image-preview-${index}`}
+                >
                   <View style={styles.imagePlaceholder}>
-                    <Paragraph style={styles.imagePlaceholderText}>{t('products:product_image')} {index + 1}</Paragraph>
+                    <Paragraph style={styles.imagePlaceholderText}>
+                      {t('products:product_image')} {index + 1}
+                    </Paragraph>
                   </View>
                   <Button
                     mode="contained"

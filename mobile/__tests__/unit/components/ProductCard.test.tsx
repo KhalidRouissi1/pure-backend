@@ -8,6 +8,8 @@ const mockProduct: Product = {
   name: 'Test Product',
   description: 'Test description',
   price: '99.99',
+  inventoryQuantity: 10,
+  isActive: true,
   imageUrls: ['https://example.com/image.jpg'],
   category: Category.FRUITS_VEGETABLES,
   storeId: 'store-1',

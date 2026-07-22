@@ -2,13 +2,14 @@ import { Controller, Get, Post, Body, Param, UseGuards, Query, Patch, Delete } f
 import { AdminService } from './admin.service';
 import { OrdersService } from '../orders/orders.service';
 import { ReviewsService } from '../reviews/reviews.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { Role } from '../../common/decorators/roles.decorator';
+import { AdminLimitDto, AdminPaginationDto, ModerateReviewDto, ReviewCertificationDto, UpdateUserRoleDto } from './dto/admin.dto';
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
 export class AdminController {
   constructor(
@@ -50,14 +51,14 @@ export class AdminController {
   }
 
   @Get('stores/recent')
-  async getRecentStores(@Query('limit') limit?: string) {
-    const stores = await this.adminService.getRecentStores(limit ? parseInt(limit) : 10);
+  async getRecentStores(@Query() query: AdminLimitDto) {
+    const stores = await this.adminService.getRecentStores(query.limit);
     return { success: true, data: stores };
   }
 
   @Get('products/recent')
-  async getRecentProducts(@Query('limit') limit?: string) {
-    const products = await this.adminService.getRecentProducts(limit ? parseInt(limit) : 10);
+  async getRecentProducts(@Query() query: AdminLimitDto) {
+    const products = await this.adminService.getRecentProducts(query.limit);
     return { success: true, data: products };
   }
 
@@ -72,42 +73,41 @@ export class AdminController {
   }
 
   @Post('reviews/:id/moderate')
-  async moderateReview(@Param('id') id: string, @Body('status') status: 'APPROVED' | 'REJECTED') {
-    return { success: true, data: await this.reviewsService.moderate(id, status) };
+  async moderateReview(@Param('id') id: string, @Body() dto: ModerateReviewDto) {
+    return { success: true, data: await this.reviewsService.moderate(id, dto.status) };
   }
 
   @Post('stores/:id/certification-review')
   async reviewCertification(
     @Param('id') id: string,
-    @Body('status') status: 'APPROVED' | 'REJECTED',
-    @Body('notes') notes?: string,
+    @Body() dto: ReviewCertificationDto,
   ) {
-    return { success: true, data: await this.adminService.reviewCertification(id, status, notes) };
+    return { success: true, data: await this.adminService.reviewCertification(id, dto.status, dto.notes) };
   }
 
   @Get('users')
-  async getUsers(@Query('page') page?: string, @Query('limit') limit?: string) {
+  async getUsers(@Query() query: AdminPaginationDto) {
     return {
       success: true,
       data: await this.adminService.getUsers(
-        page ? parseInt(page) : 1,
-        limit ? parseInt(limit) : 20,
+        query.page,
+        query.limit,
       ),
     };
   }
 
   @Patch('users/:id/role')
-  async updateUserRole(@Param('id') id: string, @Body('role') role: string) {
-    return { success: true, data: await this.adminService.updateUserRole(id, role) };
+  async updateUserRole(@Param('id') id: string, @Body() dto: UpdateUserRoleDto) {
+    return { success: true, data: await this.adminService.updateUserRole(id, dto.role) };
   }
 
   @Get('stores')
-  async getAllStores(@Query('page') page?: string, @Query('limit') limit?: string) {
+  async getAllStores(@Query() query: AdminPaginationDto) {
     return {
       success: true,
       data: await this.adminService.getAllStores(
-        page ? parseInt(page) : 1,
-        limit ? parseInt(limit) : 20,
+        query.page,
+        query.limit,
       ),
     };
   }

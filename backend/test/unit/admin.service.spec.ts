@@ -5,9 +5,9 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('AdminService', () => {
   let service: AdminService;
-  let prisma: PrismaService;
 
   const mockPrismaService = {
+    $transaction: jest.fn(),
     store: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -47,9 +47,11 @@ describe('AdminService', () => {
     }).compile();
 
     service = module.get<AdminService>(AdminService);
-    prisma = module.get<PrismaService>(PrismaService);
 
     jest.clearAllMocks();
+    mockPrismaService.$transaction.mockImplementation(
+      (operation: (client: typeof mockPrismaService) => unknown) => operation(mockPrismaService),
+    );
   });
 
   describe('getPendingStores', () => {
@@ -90,7 +92,13 @@ describe('AdminService', () => {
 
   describe('verifyStore', () => {
     it('should verify store successfully', async () => {
-      const mockStore = { id: 'store-1', name: 'Test Store', isVerified: false };
+      const mockStore = {
+        id: 'store-1',
+        name: 'Test Store',
+        isVerified: false,
+        ownerId: 'user-1',
+        owner: { id: 'user-1', role: 'USER' },
+      };
       const verifiedStore = { ...mockStore, isVerified: true };
       mockPrismaService.store.findUnique.mockResolvedValue(mockStore);
       mockPrismaService.store.update.mockResolvedValue(verifiedStore);

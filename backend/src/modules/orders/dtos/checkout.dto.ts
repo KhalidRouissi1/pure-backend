@@ -1,15 +1,15 @@
-import { IsIn, IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import { IsEnum, IsOptional, IsUUID } from 'class-validator';
+
+export enum PaymentMethod {
+  CASH_ON_DELIVERY = 'CASH_ON_DELIVERY',
+  CARD_ON_DELIVERY = 'CARD_ON_DELIVERY',
+}
 
 export class CheckoutDto {
   @IsOptional()
   @IsUUID()
   addressId?: string;
 
-  @IsString()
-  @Length(3, 40)
-  paymentMethod: string;
-
-  @IsOptional()
-  @IsIn(['PENDING', 'CONFIRMED'])
-  paymentStatus?: 'PENDING' | 'CONFIRMED';
+  @IsEnum(PaymentMethod)
+  paymentMethod: PaymentMethod;
 }

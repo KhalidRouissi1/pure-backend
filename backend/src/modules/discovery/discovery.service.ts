@@ -24,7 +24,7 @@ export class DiscoveryService {
     const products = await this.prisma.product.findMany({
       where: {
         store: {
-          isVerified: query.verified ?? true,
+          isVerified: true,
         },
       },
       include: {
@@ -78,7 +78,7 @@ export class DiscoveryService {
     const products = await this.prisma.product.findMany({
       where: {
         store: {
-          isVerified: query.verified ?? true,
+          isVerified: true,
         },
       },
       include: {

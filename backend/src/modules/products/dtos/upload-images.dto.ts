@@ -2,8 +2,7 @@ import {
   IsArray, 
   ArrayMinSize, 
   ArrayMaxSize, 
-  IsNotEmpty, 
-  ValidateNested 
+  IsNotEmpty
 } from 'class-validator';
 import { Type } from 'class-transformer';
 

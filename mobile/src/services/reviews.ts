@@ -1,22 +1,24 @@
-import api from './api';
+import api, { ApiEnvelope, unwrapData } from './api';
 import { Review } from '../types';
 
+const emptyReviewSummary = { reviews: [], summary: { count: 0, averageRating: 0 } };
+
 export const getProductReviews = async (productId: string): Promise<{ reviews: Review[]; summary: { count: number; averageRating: number } }> => {
-  const response: any = await api.get(`/products/${productId}/reviews`);
-  return response?.data || { reviews: [], summary: { count: 0, averageRating: 0 } };
+  const response = await api.get<ApiEnvelope<{ reviews: Review[]; summary: { count: number; averageRating: number } }>>(`/products/${productId}/reviews`);
+  return unwrapData(response, emptyReviewSummary);
 };
 
 export const createProductReview = async (productId: string, rating: number, comment?: string): Promise<Review> => {
-  const response: any = await api.post(`/products/${productId}/reviews`, { rating, comment });
-  return response?.data;
+  const response = await api.post<ApiEnvelope<Review>>(`/products/${productId}/reviews`, { rating, comment });
+  return unwrapData<Review | undefined>(response, undefined) as Review;
 };
 
 export const getStoreReviews = async (storeId: string): Promise<{ reviews: Review[]; summary: { count: number; averageRating: number } }> => {
-  const response: any = await api.get(`/stores/${storeId}/reviews`);
-  return response?.data || { reviews: [], summary: { count: 0, averageRating: 0 } };
+  const response = await api.get<ApiEnvelope<{ reviews: Review[]; summary: { count: number; averageRating: number } }>>(`/stores/${storeId}/reviews`);
+  return unwrapData(response, emptyReviewSummary);
 };
 
 export const createStoreReview = async (storeId: string, rating: number, comment?: string): Promise<Review> => {
-  const response: any = await api.post(`/stores/${storeId}/reviews`, { rating, comment });
-  return response?.data;
+  const response = await api.post<ApiEnvelope<Review>>(`/stores/${storeId}/reviews`, { rating, comment });
+  return unwrapData<Review | undefined>(response, undefined) as Review;
 };

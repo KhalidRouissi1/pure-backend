@@ -17,10 +17,11 @@ import {
 } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
-import { uploadImagesToCloudinary } from '../services/images';
+import { uploadImages } from '../services/images';
 
 interface ImagePreview {
   uri: string;
+  dataUrl?: string;
   publicId?: string;
   uploading?: boolean;
   error?: string;
@@ -37,7 +38,7 @@ export default function ImageUploader({
   images,
   onChange,
   maxImages = 5,
-  maxSizeMB = 5,
+  maxSizeMB = 4,
 }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const { t } = useTranslation(['common', 'products']);
@@ -78,6 +79,9 @@ export default function ImageUploader({
 
           newImages.push({
             uri: asset.uri!,
+            dataUrl: asset.base64
+              ? `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`
+              : undefined,
             uploading: false,
           });
         }
@@ -110,11 +114,17 @@ export default function ImageUploader({
       onChange(updatedImages);
 
       // Upload to Cloudinary
-      const base64Images = unuploadedImages.map(img => img.uri);
-      const uploadedUrls = await uploadImagesToCloudinary(base64Images);
+      const base64Images = unuploadedImages
+        .map((img) => img.dataUrl)
+        .filter((value): value is string => Boolean(value));
+
+      if (base64Images.length !== unuploadedImages.length) {
+        throw new Error('One or more selected images could not be read');
+      }
+      const uploadedUrls = await uploadImages(base64Images);
 
       // Update images with public IDs
-      const finalImages = updatedImages.map((img, index) => {
+      const finalImages = updatedImages.map((img) => {
         if (img.uploading) {
           const urlIndex = unuploadedImages.indexOf(img);
           return {

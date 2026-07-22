@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, StyleSheet, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +23,15 @@ interface EditInfoModalProps {
   fieldKey?: string;
 }
 
-export default function EditInfoModal({ visible, label, value, saving, onSave, onCancel, fieldKey }: EditInfoModalProps) {
+export default function EditInfoModal({
+  visible,
+  label,
+  value,
+  saving,
+  onSave,
+  onCancel,
+  fieldKey,
+}: EditInfoModalProps) {
   const { t } = useTranslation('profile');
   const [localValue, setLocalValue] = useState(value);
 
@@ -40,9 +57,18 @@ export default function EditInfoModal({ visible, label, value, saving, onSave, o
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent presentationStyle="pageSheet" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      statusBarTranslucent
+      onRequestClose={onCancel}
+    >
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onCancel} />
-      <KeyboardAvoidingView style={styles.sheet} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView
+        style={styles.sheet}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.handle} />
         <Text style={styles.title}>{t('editModal.title', { field: label })}</Text>
 
@@ -83,8 +109,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     position: 'absolute',
     bottom: 0,
-    left: 0,
-    right: 0,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 680,
   },
   handle: {
     width: 40,

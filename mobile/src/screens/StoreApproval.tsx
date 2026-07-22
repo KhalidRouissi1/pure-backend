@@ -17,9 +17,11 @@ import BackHeader from '../components/BackHeader';
 import StoreApprovalCard from '../components/StoreApprovalCard';
 import { getPendingStores } from '../services/admin';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 export default function StoreApproval() {
   const insets = useSafeAreaInsets();
+  const layout = useResponsiveLayout();
   const { t } = useTranslation(['common', 'admin', 'stores']);
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,8 +56,17 @@ export default function StoreApproval() {
   const filteredStores = useMemo(() => {
     const q = query.trim().toLowerCase();
     return stores.filter((store) => {
-      const matchesFilter = filter === 'all' || (filter === 'certification' && store.certificationStatus === 'PENDING' && store.certificationUrl) || (filter === 'unverified' && !store.isVerified);
-      const matchesQuery = !q || [store.name, store.city, store.category, store.owner?.email].filter(Boolean).some((value) => String(value).toLowerCase().includes(q));
+      const matchesFilter =
+        filter === 'all' ||
+        (filter === 'certification' &&
+          store.certificationStatus === 'PENDING' &&
+          store.certificationUrl) ||
+        (filter === 'unverified' && !store.isVerified);
+      const matchesQuery =
+        !q ||
+        [store.name, store.city, store.category, store.owner?.email]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(q));
       return matchesFilter && matchesQuery;
     });
   }, [filter, query, stores]);
@@ -73,16 +84,35 @@ export default function StoreApproval() {
 
   return (
     <View style={styles.root}>
-      <BackHeader title={t('admin:store_approvals')} subtitle={t('admin:pending_count', { count: stores.length })} />
-      <View style={styles.filters}>
+      <BackHeader
+        title={t('admin:store_approvals')}
+        subtitle={t('admin:pending_count', { count: stores.length })}
+      />
+      <View style={[styles.filters, { paddingHorizontal: layout.outerInset + layout.gutter }]}>
         <View style={styles.searchBox}>
           <Ionicons name="search-outline" size={18} color={colors.textSecondary} />
-          <TextInput style={styles.searchInput} value={query} onChangeText={setQuery} placeholder={t('common:search')} placeholderTextColor={colors.textTertiary} />
+          <TextInput
+            style={styles.searchInput}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('common:search')}
+            placeholderTextColor={colors.textTertiary}
+          />
         </View>
         <View style={styles.filterRow}>
           {(['all', 'certification', 'unverified'] as const).map((value) => (
-            <TouchableOpacity key={value} style={[styles.filterChip, filter === value && styles.filterChipActive]} onPress={() => setFilter(value)}>
-              <Text style={[styles.filterText, filter === value && styles.filterTextActive]}>{value === 'all' ? t('common:all') : value === 'certification' ? t('admin:pending_certifications') : t('stores:unverified')}</Text>
+            <TouchableOpacity
+              key={value}
+              style={[styles.filterChip, filter === value && styles.filterChipActive]}
+              onPress={() => setFilter(value)}
+            >
+              <Text style={[styles.filterText, filter === value && styles.filterTextActive]}>
+                {value === 'all'
+                  ? t('common:all')
+                  : value === 'certification'
+                    ? t('admin:pending_certifications')
+                    : t('stores:unverified')}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -90,10 +120,15 @@ export default function StoreApproval() {
       <FlatList
         data={filteredStores}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <StoreApprovalCard store={item} onUpdated={handleStoreUpdated} />
-        )}
-        contentContainerStyle={[styles.listContent, { paddingTop: 8, paddingBottom: insets.bottom + 24 }]}
+        renderItem={({ item }) => <StoreApprovalCard store={item} onUpdated={handleStoreUpdated} />}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            paddingTop: 8,
+            paddingBottom: insets.bottom + 24,
+            paddingHorizontal: layout.outerInset + layout.gutter,
+          },
+        ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
@@ -120,14 +155,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  listContent: {
-    paddingHorizontal: 16,
+  listContent: {},
+  filters: { paddingBottom: 6 },
+  searchBox: {
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
   },
-  filters: { paddingHorizontal: 16, paddingBottom: 6 },
-  searchBox: { height: 46, borderRadius: 14, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, marginBottom: 10 },
   searchInput: { flex: 1, ...typography.body2, color: colors.text, paddingVertical: 0 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderLight },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
   filterChipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
   filterText: { ...typography.caption, color: colors.textSecondary },
   filterTextActive: { color: colors.primaryDark },

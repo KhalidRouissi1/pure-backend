@@ -12,7 +12,10 @@ import {
   IsNumber,
   IsArray,
   ArrayMaxSize,
+  IsBoolean,
 } from 'class-validator';
+import { PartialType } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
 
 export enum Category {
   FRUITS_VEGETABLES = 'FRUITS_VEGETABLES',
@@ -85,4 +88,40 @@ export class CreateStoreDto {
   @Min(34, { message: 'Longitude must be between 34 and 56 (Saudi Arabia bounds)' })
   @Max(56, { message: 'Longitude must be between 34 and 56 (Saudi Arabia bounds)' })
   longitude?: number;
+}
+
+export class UpdateStoreDto extends PartialType(CreateStoreDto) {}
+
+export class StoreQueryDto {
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' ? true : value === 'false' ? false : value)
+  verified?: boolean;
+
+  @IsOptional()
+  @IsEnum(Category)
+  category?: Category;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
+export class VerifyStoreDto {
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  isVerified: boolean;
+}
+
+export class SubmitCertificationDto {
+  @IsUrl({ protocols: ['https'], require_protocol: true })
+  certificationUrl: string;
 }

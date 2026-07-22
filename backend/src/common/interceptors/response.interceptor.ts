@@ -6,17 +6,20 @@ export interface Response<T> {
   success: boolean;
   data?: T;
   message: string;
+  meta?: unknown;
 }
 
 @Injectable()
 export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
     return next.handle().pipe(
-      map((data) => ({
-        success: true,
-        data: data.data || data,
-        message: data.message || 'Operation successful',
-      })),
+      map((data) => {
+        if (data && typeof data === 'object' && 'success' in data) {
+          return data as Response<T>;
+        }
+
+        return { success: true, data, message: 'Operation successful' };
+      }),
     );
   }
 }

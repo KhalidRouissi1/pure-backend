@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../config/database';
 import { AddCartItemDto, UpdateCartItemDto } from './dtos/cart.dto';
 
@@ -41,17 +41,36 @@ export class CartService {
 
   async addItem(userId: string, dto: AddCartItemDto) {
     const product = await this.prisma.product.findFirst({
-      where: { id: dto.productId, store: { isVerified: true } },
+      where: {
+        id: dto.productId,
+        isActive: true,
+        inventoryQuantity: { gte: dto.quantity },
+        store: { isVerified: true },
+      },
     });
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    await this.prisma.cartItem.upsert({
-      where: { userId_productId: { userId, productId: dto.productId } },
-      update: { quantity: { increment: dto.quantity } },
-      create: { userId, productId: dto.productId, quantity: dto.quantity },
+    await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.cartItem.findUnique({
+        where: { userId_productId: { userId, productId: dto.productId } },
+      });
+      const nextQuantity = (existing?.quantity ?? 0) + dto.quantity;
+
+      if (nextQuantity > 99) {
+        throw new BadRequestException('Maximum quantity per product is 99');
+      }
+      if (nextQuantity > product.inventoryQuantity) {
+        throw new BadRequestException('Requested quantity is not available');
+      }
+
+      await tx.cartItem.upsert({
+        where: { userId_productId: { userId, productId: dto.productId } },
+        update: { quantity: nextQuantity },
+        create: { userId, productId: dto.productId, quantity: dto.quantity },
+      });
     });
 
     return this.getCart(userId);

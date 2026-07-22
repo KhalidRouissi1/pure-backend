@@ -21,14 +21,15 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { getSellerProducts, deleteProduct, Product as SellerProduct } from '../services/products';
+import { Category } from '../types';
 
 interface Product extends Omit<SellerProduct, 'store' | '_count' | 'updatedAt'> {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: string;
   imageUrls: string[];
-  category: string;
+  category: Category;
   store: {
     id: string;
     name: string;
@@ -137,7 +138,7 @@ export default function ProductList({ storeId, editMode = false }: ProductListPr
               <Title style={styles.productName} numberOfLines={1}>
                 {item.name}
               </Title>
-              <Paragraph style={styles.price}>{t('common:sar')} {item.price.toFixed(2)}</Paragraph>
+              <Paragraph style={styles.price}>{t('common:sar')} {Number(item.price).toFixed(2)}</Paragraph>
             </View>
             {editMode && (
               <Menu
@@ -210,7 +211,7 @@ export default function ProductList({ storeId, editMode = false }: ProductListPr
 
   const renderLoading = () => (
     <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" />
+      <ActivityIndicator testID="loading-indicator" size="large" />
       <Paragraph style={styles.loadingText}>{t('products:loading_products')}</Paragraph>
     </View>
   );

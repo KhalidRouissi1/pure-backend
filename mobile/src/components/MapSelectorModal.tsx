@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, StyleSheet, View, TouchableOpacity, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
+import { Modal, StyleSheet, View, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import MapView, { Marker, MapPressEvent, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Button, IconButton, Searchbar, Text, Surface } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { colors } from '../theme/colors';
 import { SAUDI_CENTER, isInsideSaudiBounds, nearestSaudiCity, matchSaudiCity } from '../utils/saudiLocations';

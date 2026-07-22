@@ -1,10 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Role, Roles } from '../../common/decorators/roles.decorator';
 import { CartService } from './cart.service';
 import { AddCartItemDto, UpdateCartItemDto } from './dtos/cart.dto';
 
 @Controller('cart')
-@UseGuards(JwtAuthGuard)
+@UseGuards(SessionAuthGuard, RolesGuard)
+@Roles(Role.USER, Role.SELLER)
 export class CartController {
   constructor(private cartService: CartService) {}
 

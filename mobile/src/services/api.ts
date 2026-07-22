@@ -1,7 +1,26 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import authClient from './authClient';
+import { API_BASE_URL } from '../config/apiBaseUrl';
 
-const TOKEN_KEY = '@watani_token';
+export interface ApiEnvelope<T> {
+  success?: boolean;
+  data?: T;
+  message?: string;
+  meta?: unknown;
+}
+
+export function unwrapData<T>(response: ApiEnvelope<T> | T | null | undefined, fallback: T): T {
+  if (response && typeof response === 'object' && 'data' in response) {
+    return (response as ApiEnvelope<T>).data ?? fallback;
+  }
+  return (response ?? fallback) as T;
+}
+
+export function unwrapItems<T>(response: ApiEnvelope<T[] | { items?: T[] }> | T[] | null | undefined): T[] {
+  const data = unwrapData<T[] | { items?: T[] } | null | undefined>(response, []);
+  if (Array.isArray(data)) return data;
+  return data?.items ?? [];
+}
 
 class ApiService {
   private api: AxiosInstance | null = null;
@@ -9,7 +28,7 @@ class ApiService {
   private getApi(): AxiosInstance {
     if (!this.api) {
       this.api = axios.create({
-        baseURL: (process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000/api').replace(/\/?$/, '/'),
+        baseURL: `${API_BASE_URL}/`,
         timeout: 10000,
         headers: {
           'Content-Type': 'application/json',
@@ -24,15 +43,9 @@ class ApiService {
   private setupInterceptors() {
     if (!this.api) return;
     this.api.interceptors.request.use(
-      async (config: InternalAxiosRequestConfig) => {
-        try {
-          const token = await AsyncStorage.getItem(TOKEN_KEY);
-          if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`;
-          }
-        } catch (error) {
-          console.error('Error getting token:', error);
-        }
+      (config: InternalAxiosRequestConfig) => {
+        const cookie = authClient.getCookie();
+        if (cookie && config.headers) config.headers.set('Cookie', cookie);
         return config;
       },
       (error) => Promise.reject(error)
@@ -40,46 +53,30 @@ class ApiService {
 
     this.api.interceptors.response.use(
       (response: AxiosResponse) => response.data,
-      async (error) => {
-        if (error.response?.status === 401) {
-          await AsyncStorage.removeItem(TOKEN_KEY);
-        }
-        return Promise.reject(error.response?.data || error.message);
-      }
+      (error) => Promise.reject(error.response?.data || error.message)
     );
   }
 
-  get(url: string, config?: AxiosRequestConfig) {
-    return this.getApi().get(url, config);
+  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    return this.getApi().get(url, config) as unknown as Promise<T>;
   }
 
-  post(url: string, data?: any, config?: AxiosRequestConfig) {
-    return this.getApi().post(url, data, config);
+  post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return this.getApi().post(url, data, config) as unknown as Promise<T>;
   }
 
-  put(url: string, data?: any, config?: AxiosRequestConfig) {
-    return this.getApi().put(url, data, config);
+  put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return this.getApi().put(url, data, config) as unknown as Promise<T>;
   }
 
-  patch(url: string, data?: any, config?: AxiosRequestConfig) {
-    return this.getApi().patch(url, data, config);
+  patch<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return this.getApi().patch(url, data, config) as unknown as Promise<T>;
   }
 
-  delete(url: string, config?: AxiosRequestConfig) {
-    return this.getApi().delete(url, config);
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    return this.getApi().delete(url, config) as unknown as Promise<T>;
   }
 
-  setToken(token: string) {
-    return AsyncStorage.setItem(TOKEN_KEY, token);
-  }
-
-  getToken() {
-    return AsyncStorage.getItem(TOKEN_KEY);
-  }
-
-  removeToken() {
-    return AsyncStorage.removeItem(TOKEN_KEY);
-  }
 }
 
 export const apiService = new ApiService();

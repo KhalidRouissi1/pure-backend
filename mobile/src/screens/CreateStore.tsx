@@ -9,10 +9,13 @@ import { colors } from '../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Category, CategoryLabels } from '../types';
 import SaudiLocationPicker from '../components/SaudiLocationPicker';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import { MAX_FORM_WIDTH } from '../utils/responsive';
 
 export default function CreateStore() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const layout = useResponsiveLayout();
   const { t } = useTranslation(['common', 'stores', 'products']);
 
   const [formData, setFormData] = useState({
@@ -31,7 +34,10 @@ export default function CreateStore() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const categories = Object.values(Category).map((value) => ({ label: CategoryLabels[value], value }));
+  const categories = Object.values(Category).map((value) => ({
+    label: CategoryLabels[value],
+    value,
+  }));
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -138,7 +144,16 @@ export default function CreateStore() {
       <BackHeader title={t('stores:create_title')} subtitle={t('stores:create_subtitle')} />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom: insets.bottom + 24,
+            paddingHorizontal: layout.gutter,
+            maxWidth: MAX_FORM_WIDTH,
+            width: '100%',
+            alignSelf: 'center',
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >

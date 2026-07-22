@@ -30,7 +30,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message = (exceptionResponse as any).message || message;
         data = (exceptionResponse as any).data || null;
       }
-    } else if (exception instanceof Error) {
+    } else if (exception instanceof Error && process.env.NODE_ENV !== 'production') {
       message = exception.message;
     }
 
@@ -45,6 +45,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message,
       timestamp: new Date().toISOString(),
       path: request.url,
+      requestId: request.id,
     });
   }
 }

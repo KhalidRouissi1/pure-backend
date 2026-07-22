@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Request, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dtos/review.dto';
 
@@ -13,7 +13,7 @@ export class ReviewsController {
   }
 
   @Post('products/:id/reviews')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   async createProductReview(@Request() req: any, @Param('id') id: string, @Body() dto: CreateReviewDto) {
     return { success: true, data: await this.reviewsService.createForProduct(req.user.sub, id, dto) };
   }
@@ -24,7 +24,7 @@ export class ReviewsController {
   }
 
   @Post('stores/:id/reviews')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(SessionAuthGuard)
   async createStoreReview(@Request() req: any, @Param('id') id: string, @Body() dto: CreateReviewDto) {
     return { success: true, data: await this.reviewsService.createForStore(req.user.sub, id, dto) };
   }

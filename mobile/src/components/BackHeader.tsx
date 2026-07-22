@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, I18nManager } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { FontFamilies } from '../theme/fonts';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 
 interface BackHeaderProps {
   title: string;
@@ -15,10 +16,13 @@ interface BackHeaderProps {
 export default function BackHeader({ title, subtitle, rightAction }: BackHeaderProps) {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const layout = useResponsiveLayout();
 
   return (
     <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
-      <View style={styles.row}>
+      <View
+        style={[styles.row, { paddingHorizontal: layout.gutter, maxWidth: layout.maxContentWidth }]}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -26,7 +30,7 @@ export default function BackHeader({ title, subtitle, rightAction }: BackHeaderP
           testID="back-button"
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Ionicons name={I18nManager.isRTL ? "chevron-forward" : "chevron-back"} size={24} color={colors.text} />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
           <Text style={styles.title} numberOfLines={1}>
@@ -52,8 +56,10 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    direction: 'ltr',
     alignItems: 'center',
-    paddingEnd: 16,
+    alignSelf: 'center',
+    width: '100%',
   },
   backButton: {
     width: 40,
@@ -62,8 +68,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
-    marginStart: 12,
-    marginEnd: 10,
+    marginRight: 10,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
@@ -75,12 +80,14 @@ const styles = StyleSheet.create({
     fontFamily: FontFamilies.extraBold,
     fontSize: 20,
     color: colors.text,
+    writingDirection: 'auto',
   },
   subtitle: {
     fontFamily: FontFamilies.body,
     fontSize: 12,
     color: colors.textTertiary,
     marginTop: 1,
+    writingDirection: 'auto',
   },
   rightAction: {
     marginStart: 8,
