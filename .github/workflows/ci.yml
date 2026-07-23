@@ -123,6 +123,39 @@ jobs:
           fi
 
           gzip -dc /tmp/pure-backend-new.tar.gz | $DOCKER load
+
+          $DOCKER run --rm --env-file "$ENV_FILE" node:22-alpine node - <<'NODE'
+          const net = require('node:net');
+          const { URL } = require('node:url');
+
+          const databaseUrl = process.env.DATABASE_URL;
+          if (!databaseUrl) {
+            console.error('DATABASE_URL is missing');
+            process.exit(1);
+          }
+
+          const url = new URL(databaseUrl);
+          const host = url.hostname;
+          const port = Number(url.port || 5432);
+          console.log(`DATABASE_URL_HOST=${host}`);
+          console.log(`Testing TCP ${host}:${port} from Docker...`);
+
+          const socket = net.createConnection({ host, port, timeout: 10000 });
+          socket.on('connect', () => {
+            console.log('Database TCP connection OK');
+            socket.end();
+          });
+          socket.on('timeout', () => {
+            console.error('Database TCP connection timed out');
+            socket.destroy();
+            process.exit(1);
+          });
+          socket.on('error', (error) => {
+            console.error(`Database TCP connection failed: ${error.code || error.message}`);
+            process.exit(1);
+          });
+          NODE
+
           $DOCKER stop pure-backend || true
           $DOCKER rm pure-backend || true
           $DOCKER run -d \
