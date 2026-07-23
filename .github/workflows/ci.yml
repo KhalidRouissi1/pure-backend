@@ -125,16 +125,23 @@ jobs:
           gzip -dc /tmp/pure-backend-new.tar.gz | $DOCKER load
           $DOCKER stop pure-backend || true
           $DOCKER rm pure-backend || true
-          $DOCKER stop nestapp || true
-          $DOCKER rm nestapp || true
           $DOCKER run -d \
             --name pure-backend \
             --restart unless-stopped \
             --env-file "$ENV_FILE" \
-            -p 127.0.0.1:3000:3000 \
+            -p 127.0.0.1:3001:3000 \
             pure-backend:new
 
           rm -f /tmp/pure-backend-new.tar.gz /tmp/pure-backend.env
-          sleep 5
-          curl -fsS http://127.0.0.1:3000/api/health/live
+          for ATTEMPT in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3001/api/health/live; then
+              echo "Backend is healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          $DOCKER ps -a --filter name=pure-backend
+          $DOCKER logs --tail 200 pure-backend || true
+          exit 1
           EOF
